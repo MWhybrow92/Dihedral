@@ -53,8 +53,6 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
         algebra.eigenvectors.(String(ev)) := SparseMatrix(0, n + 1, [], [], ring);
     od;
 
-    algebra.eigenvectors.1 := SparseMatrix(1, n + 1, [ [1] ], [ [One(ring)] ], ring);
-
     algebra.null := SparseMatrix(0, n + 1, [], [], Rationals);
 
     # We might also need to look at direct sums of eigenspaces coming from the fusion table
@@ -81,6 +79,8 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
     for i in [1 .. Size(eigenvalues)] do
         algebra.eigenvectors.(String(eigenvalues[i])) := CertainRows(first, [i]);
     od;
+
+    algebra.eigenvectors.1 := UnionOfRows( algebra.eigenvectors.1, SparseMatrix(1, n + 1, [ [1] ], [ [One(ring)] ], ring) );
 
     # TODO What about primitivity?
 
@@ -257,6 +257,8 @@ DihedralAlgebrasFusion := function(algebra)
                         AddToEntry(prod[2], 1, pos, -prod[1]!.entries[1][k]);
                     od;
 
+                    # TODO make all rec names lists and add new vectors to all relevant
+
                     if Size(ev) = 1 then
                         new.(String(ev[1])) := UnionOfRows(new.(String(ev[1])), -prod[2]);
                     elif Size(ev) = 0 then
@@ -290,6 +292,9 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
 
     # Find the intersection of all pairs of known eigenspaces and add to null
     for ev in Combinations( RecNames(algebra.eigenvectors), 2 ) do
+
+        ## TODO Need to make sure that the eigenvalues are indeed disjoint
+
         za := SumIntersectionSparseMat( algebra.eigenvectors.(ev[1]), algebra.eigenvectors.(ev[2]) );
         null := UnionOfRows(null, za[2]);
     od;
@@ -301,12 +306,16 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
         if null.heads[i] <> 0 then
 
             x := algebra.spanningset[i];
+            prod := CertainRows(null.vectors, [null.heads[i]]);
 
             # Record new product
             if algebra.products[x[1], x[2]] = false then
-                prod := CertainRows(null.vectors, [null.heads[i]]);
-                SetEntry(prod, 1, i, 0);
+                SetEntry(prod, 1, i, Zero(algebra.ring));
                 algebra.products[x[1], x[2]] := -prod;
+                algebra.products[x[2], x[1]] := -prod;
+            elif prod!.indices[1] = [i] then
+                algebra.products[x[1], x[2]] := SparseZeroMatrix(1, span, algebra.ring);
+                algebra.products[x[2], x[1]] := SparseZeroMatrix(1, span, algebra.ring);
             else
                 Error("Need to check equality of new product with old");
             fi;
@@ -354,6 +363,6 @@ end;
 
 JordanTable := function(nu)
 
-    return [ [ [1], [0], [nu] ], [ [0], [0], [nu] ], [ [nu], [nu], [1, 0] ] ];
+    return [ [ [1], [], [nu] ], [ [], [0], [nu] ], [ [nu], [nu], [1, 0] ] ];
 
 end;
