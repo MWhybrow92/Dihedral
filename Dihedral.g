@@ -213,7 +213,7 @@ DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
             if Size(eqn[1]!.indices[1]) = 1 then
                 pair := system.unknowns[eqn[1]!.indices[1][1]];
                 algebra.products[pair[1], pair[2]] := eqn[2]*(1/eqn[1]!.entries[1][1]);
-                algebra.products[pair[2], pair[1]] := eqn[2];
+                algebra.products[pair[2], pair[1]] := eqn[2]*(1/eqn[1]!.entries[1][1]);
             elif Size(eqn[1]!.indices[1]) <> 0 then
                 system.mat := UnionOfRows(system.mat, eqn[1]);
                 system.vec := UnionOfRows(system.vec, eqn[2]);
@@ -222,7 +222,6 @@ DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
     od;
 
     return system;
-
     # TODO actually solve this system!
 
 end;
@@ -260,12 +259,10 @@ DihedralAlgebrasFusion := function(algebra)
                     od;
 
                     if Size(ev) = 0 then
-                        Error("null");
                         algebra.null := MAJORANA_AddEvec(algebra.null, prod[2]);
                     else
                         for sum in Union(algebra.fusiontable) do
                             if IsSubset(sum, ev) then
-                                Error("other fusion");
                                 new.(String(sum)) := UnionOfRows(new.(String(sum)), -prod[2]);
                             fi;
                         od;
