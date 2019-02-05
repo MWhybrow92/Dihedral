@@ -49,21 +49,11 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
     od;
 
     # The empty eigenvector record (for axis a_0)
-    for ev in eigenvalues do
+    for ev in Filtered(Union(fusiontable), x -> x <> []) do
         algebra.eigenvectors.(String(ev)) := SparseMatrix(0, n + 1, [], [], ring);
     od;
 
     algebra.null := SparseMatrix(0, n + 1, [], [], Rationals);
-
-    # We might also need to look at direct sums of eigenspaces coming from the fusion table
-    for sum in Union(fusiontable) do
-        if Size(sum) > 1 then
-            algebra.eigenvectors.(String(sum)) := SparseMatrix(0, n + 1, [], [], ring);
-            for ev in sum do
-                algebra.eigenvectors.(String(sum)) := UnionOfRows( algebra.eigenvectors.(String(sum)), algebra.eigenvectors.(String(ev)) );
-            od;
-        fi;
-    od;
 
     # The spanning set at the moment is a_0, a_1, a_0(a_0a_1), a_0(a_0(a_0a_1)) etc.
     algebra.spanningset := Concatenation( [1, 2], Cartesian([1], [2..n]));
@@ -77,10 +67,19 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
 
     # Add these eigenvectors to the algebra
     for i in [1 .. Size(eigenvalues)] do
-        algebra.eigenvectors.(String(eigenvalues[i])) := CertainRows(first, [i]);
+        algebra.eigenvectors.(String([eigenvalues[i]])) := CertainRows(first, [i]);
     od;
 
-    algebra.eigenvectors.1 := UnionOfRows( algebra.eigenvectors.1, SparseMatrix(1, n + 1, [ [1] ], [ [One(ring)] ], ring) );
+    algebra.eigenvectors.(String([1])) := UnionOfRows( algebra.eigenvectors.(String([1])), SparseMatrix(1, n + 1, [ [1] ], [ [One(ring)] ], ring) );
+
+    # We might also need to look at direct sums of eigenspaces coming from the fusion table
+    for sum in Union(fusiontable) do
+        if Size(sum) > 1 then
+            for ev in sum do
+                algebra.eigenvectors.(String(sum)) := UnionOfRows( algebra.eigenvectors.(String(sum)), algebra.eigenvectors.(String([ev])) );
+            od;
+        fi;
+    od;
 
     # TODO What about primitivity?
 
@@ -207,7 +206,7 @@ DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
                     unknowns := [] );
 
     for ev in algebra.eigenvalues do
-        for v in algebra.eigenvectors.(String(ev)) do
+        for v in algebra.eigenvectors.(String([ev])) do
             eqn := MAJORANA_NaiveSeparateAlgebraProduct(u, v, system.unknowns, algebra.products);
             eqn[2] := eqn[2] + ev*v;
 
@@ -234,10 +233,11 @@ DihedralAlgebrasFusion := function(algebra)
 
     new := ShallowCopy(algebra.eigenvectors);
 
+    # TODO we could make this for Union(fusiontable) then find union of table entries?
     for i in [1 .. e] do
-        evecs_a := algebra.eigenvectors.(String(algebra.eigenvalues[i]));
+        evecs_a := algebra.eigenvectors.(String([algebra.eigenvalues[i]]));
         for j in [i .. e] do
-            evecs_b := algebra.eigenvectors.(String(algebra.eigenvalues[j]));
+            evecs_b := algebra.eigenvectors.(String([algebra.eigenvalues[j]]));
 
             ev := algebra.fusiontable[i][j];
 
@@ -259,9 +259,7 @@ DihedralAlgebrasFusion := function(algebra)
 
                     # TODO make all rec names lists and add new vectors to all relevant
 
-                    if Size(ev) = 1 then
-                        new.(String(ev[1])) := UnionOfRows(new.(String(ev[1])), -prod[2]);
-                    elif Size(ev) = 0 then
+                    if Size(ev) = 0 then
                         algebra.null := MAJORANA_AddEvec(algebra.null, prod[2]);
                     else
                         new.(String(ev)) := UnionOfRows(new.(String(ev)), -prod[2]);
@@ -291,12 +289,11 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
     null := algebra.null;
 
     # Find the intersection of all pairs of known eigenspaces and add to null
-    for ev in Combinations( RecNames(algebra.eigenvectors), 2 ) do
-
-        ## TODO Need to make sure that the eigenvalues are indeed disjoint
-
-        za := SumIntersectionSparseMat( algebra.eigenvectors.(ev[1]), algebra.eigenvectors.(ev[2]) );
-        null := UnionOfRows(null, za[2]);
+    for ev in Combinations( Union(algebra.fusiontable), 2 ) do
+        if not [] in ev and Intersection(ev[1], ev[2]) = [] then
+            za := SumIntersectionSparseMat( algebra.eigenvectors.(String(ev[1])), algebra.eigenvectors.(String(ev[2])) );
+            null := UnionOfRows(null, za[2]);
+        fi;
     od;
 
     null := ReversedEchelonMatDestructive(null);
