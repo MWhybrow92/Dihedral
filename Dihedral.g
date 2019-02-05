@@ -350,16 +350,24 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
 
 end;
 
+DihedralAlgebrasMainLoop := function(algebra)
+
+    DihedralAlgebrasEigenvectorsUnknowns(algebra);
+    DihedralAlgebrasFlip(algebra);
+    DihedralAlgebrasFusion(algebra);
+    DihedralAlgebrasIntersectEigenspaces(algebra);
+
+end;
+
 DihedralAlgebras := function(eigenvalues, fusiontable, ring)
 
     local algebra;
 
     algebra := DihedralAlgebrasSetup(eigenvalues, fusiontable, ring);
 
-    DihedralAlgebrasEigenvectorsUnknowns(algebra);
-    DihedralAlgebrasFlip(algebra);
-    DihedralAlgebrasFusion(algebra);
-    DihedralAlgebrasIntersectEigenspaces(algebra);
+    while ForAny(algebra.products, x -> false in x) do
+        DihedralAlgebrasMainLoop(algebra);
+    od;
 
     return algebra;
 
