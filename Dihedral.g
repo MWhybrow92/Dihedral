@@ -212,7 +212,7 @@ DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
 
             if Size(eqn[1]!.indices[1]) = 1 then
                 pair := system.unknowns[eqn[1]!.indices[1][1]];
-                algebra.products[pair[1], pair[2]] := eqn[2];
+                algebra.products[pair[1], pair[2]] := eqn[2]*(1/eqn[1]!.entries[1][1]);
                 algebra.products[pair[2], pair[1]] := eqn[2];
             elif Size(eqn[1]!.indices[1]) <> 0 then
                 system.mat := UnionOfRows(system.mat, eqn[1]);
@@ -223,11 +223,13 @@ DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
 
     return system;
 
+    # TODO actually solve this system!
+
 end;
 
 DihedralAlgebrasFusion := function(algebra)
 
-    local e, new, i, j, k, evecs_a, evecs_b, unknowns, prod, pos, ev, u, v;
+    local e, new, i, j, k, evecs_a, evecs_b, unknowns, prod, pos, ev, u, v, sum;
 
     e := Size(algebra.eigenvalues);
 
@@ -257,12 +259,16 @@ DihedralAlgebrasFusion := function(algebra)
                         AddToEntry(prod[2], 1, pos, -prod[1]!.entries[1][k]);
                     od;
 
-                    # TODO make all rec names lists and add new vectors to all relevant
-
                     if Size(ev) = 0 then
+                        Error("null");
                         algebra.null := MAJORANA_AddEvec(algebra.null, prod[2]);
                     else
-                        new.(String(ev)) := UnionOfRows(new.(String(ev)), -prod[2]);
+                        for sum in Union(algebra.fusiontable) do
+                            if IsSubset(sum, ev) then
+                                Error("other fusion");
+                                new.(String(sum)) := UnionOfRows(new.(String(sum)), -prod[2]);
+                            fi;
+                        od;
                     fi;
                 od;
             od;
@@ -321,6 +327,10 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
 
     # Adjust spanning set, algebra products and eigenvectors to remove nullspace quotient
     reduction := Positions(null.heads, 0);
+
+    if reduction <> [1 .. Size(reduction)] then
+        Error("Problem with nullspace vectors");
+    fi;
 
     algebra.spanningset := algebra.spanningset{reduction};
 
