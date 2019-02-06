@@ -192,6 +192,51 @@ MAJORANA_NaiveSeparateAlgebraProduct := function( u, v, unknowns, products)
 
 end;
 
+DihedralAlgebrasSolutionProducts := function(system, algebra)
+
+    local i, j, x, prod, pos, elm, nonzero_rows;
+
+    # If the matrix is zero then return
+    if ForAll(system.mat!.indices, x -> x = []) then return; fi;
+
+    MAJORANA_SolveSystem(system);
+
+    if ForAll(system.solutions, x -> x = fail) then
+        Unbind(system.solutions);
+        return;
+    fi;
+
+    for i in [1 .. Size(system.solutions)] do
+        if system.solutions[i] <> fail then
+
+            x := system.unknowns[i];
+            prod := system.solutions[i];
+
+            algebra.products[x[1], x[2]] := prod;
+            algebra.products[x[2], x[1]] := prod;
+
+            for j in [1..Nrows(system.vec)] do
+                pos := Position(system.mat!.indices[j], i);
+                if pos <> fail then
+                    elm := system.mat!.entries[j, pos];
+                    AddRow(prod!.indices[1], elm*prod!.entries[1], system.vec!.indices, system.vec!.entries);
+                fi;
+            od;
+        fi;
+    od;
+
+    system.mat := CertainColumns(system.mat, Positions(system.solutions, fail) );
+    system.unknowns := system.unknowns{ Positions(system.solutions, fail) };
+
+    Unbind(system.solutions);
+
+    nonzero_rows := Filtered([1..Nrows(system.mat)], j -> system.mat!.indices[j] <> []);
+    system.mat := CertainRows(system.mat, nonzero_rows);
+    system.vec := CertainRows(system.vec, nonzero_rows);
+
+end;
+
+
 DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
 
     local span, ring, u, system, v, eqn, ev, pair;
@@ -221,14 +266,17 @@ DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
         od;
     od;
 
+    system.mat!.ncols := Size(system.unknowns);
+
+    DihedralAlgebrasSolutionProducts(system, algebra);
+
     return system;
-    # TODO actually solve this system!
 
 end;
 
-DihedralAlgebrasFusion := function(algebra)
+DihedralAlgebrasFusion := function(algebra, expand)
 
-    local e, new, i, j, k, evecs_a, evecs_b, unknowns, prod, pos, ev, u, v, sum;
+    local e, new, i, j, k, evecs_a, evecs_b, unknowns, prod, pos, ev, u, v, sum, x;
 
     e := Size(algebra.eigenvalues);
 
@@ -248,24 +296,32 @@ DihedralAlgebrasFusion := function(algebra)
                     unknowns := [];
                     prod := MAJORANA_NaiveSeparateAlgebraProduct( u, v, unknowns, algebra.products);
 
-                    for k in [1..Size(unknowns)] do
-                        pos := Position(algebra.spanningset, unknowns[k]);
-                        if pos = fail then
-                            Add(algebra.spanningset, unknowns[k]);
-                            pos := Size(algebra.spanningset);
-                        fi;
-
-                        AddToEntry(prod[2], 1, pos, -prod[1]!.entries[1][k]);
-                    od;
-
-                    if Size(ev) = 0 then
-                        algebra.null := MAJORANA_AddEvec(algebra.null, prod[2]);
-                    else
-                        for sum in Union(algebra.fusiontable) do
-                            if IsSubset(sum, ev) then
-                                new.(String(sum)) := UnionOfRows(new.(String(sum)), -prod[2]);
+                    if expand = true then
+                        for x in unknowns do
+                            pos := Position(algebra.spanningset, x);
+                            if pos = fail then
+                                Add(algebra.spanningset, x);
+                                pos := Size(algebra.spanningset);
+                                algebra.products[x[1], x[2]] := SparseMatrix(1, pos, [[pos]], [[One(algebra.ring)]], algebra.ring);
+                                algebra.products[x[2], x[1]] := SparseMatrix(1, pos, [[pos]], [[One(algebra.ring)]], algebra.ring);
                             fi;
+
+                            AddToEntry(prod[2], 1, pos, -prod[1]!.entries[1][Position(unknowns, x)]);
                         od;
+
+                        unknowns := [];
+                    fi;
+
+                    if unknowns = [] then
+                        if Size(ev) = 0 then
+                            algebra.null := MAJORANA_AddEvec(algebra.null, prod[2]);
+                        else
+                            for sum in Union(algebra.fusiontable) do
+                                if IsSubset(sum, ev) then
+                                    new.(String(sum)) := UnionOfRows(new.(String(sum)), -prod[2]);
+                                fi;
+                            od;
+                        fi;
                     fi;
                 od;
             od;
@@ -317,7 +373,8 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
                 algebra.products[x[1], x[2]] := SparseZeroMatrix(1, span, algebra.ring);
                 algebra.products[x[2], x[1]] := SparseZeroMatrix(1, span, algebra.ring);
             else
-                Error("Need to check equality of new product with old");
+                # Error("Need to check equality of new product with old");
+                # This should be picked up in remove mat with heads below
             fi;
         fi;
     od;
@@ -350,12 +407,29 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
 
 end;
 
+DihedralAlgebrasExpand := function(algebra)
+
+    local i, j;
+
+    for i in [1 .. Size(algebra.spanningset)] do
+        if IsBound(algebra.products[i]) then
+            for j in [Size(algebra.products) + 1 .. Size(algebra.spanningset)] do
+                algebra.products[i, j] := false;
+            od;
+        else
+            algebra.products[i] := List( algebra.spanningset, x -> false );
+        fi;
+    od;
+
+end;
+
 DihedralAlgebrasMainLoop := function(algebra)
 
-    DihedralAlgebrasEigenvectorsUnknowns(algebra);
+    DihedralAlgebrasEigenvectorsUnknowns(algebra, true);
     DihedralAlgebrasFlip(algebra);
     DihedralAlgebrasFusion(algebra);
     DihedralAlgebrasIntersectEigenspaces(algebra);
+    DihedralAlgebrasExpand(algebra);
 
 end;
 
