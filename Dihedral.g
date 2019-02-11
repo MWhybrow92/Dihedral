@@ -28,9 +28,96 @@ FindFirstEigenvectors := function(eigenvalues, ring)
 
 end;
 
+DihedralAlgebrasRemoveNullspace := function(null, algebra)
+
+    local i, j, x, prod, reduction, ev, span;
+
+    span := Size(algebra.spanningset);
+    null := ReversedEchelonMatDestructive(null);
+
+    # Record any new products from the nullspace
+    for i in Reversed([1 .. span]) do
+        if null.heads[i] <> 0 then
+
+            x := algebra.spanningset[i];
+            prod := CertainRows(null.vectors, [null.heads[i]]);
+
+            # Record new product
+            if algebra.products[x[1], x[2]] = false then
+                SetEntry(prod, 1, i, Zero(algebra.ring));
+                algebra.products[x[1], x[2]] := -prod;
+                algebra.products[x[2], x[1]] := -prod;
+            elif prod!.indices[1] = [i] then
+                algebra.products[x[1], x[2]] := SparseZeroMatrix(1, span, algebra.ring);
+                algebra.products[x[2], x[1]] := SparseZeroMatrix(1, span, algebra.ring);
+            else
+                # Error("Need to check equality of new product with old");
+                # This should be picked up in remove mat with heads below
+            fi;
+        fi;
+    od;
+
+    # Adjust spanning set, algebra products and eigenvectors to remove nullspace quotient
+    reduction := Positions(null.heads, 0);
+
+    if reduction <> [1 .. Size(reduction)] then
+        Error("Problem with nullspace vectors");
+    fi;
+
+    algebra.spanningset := algebra.spanningset{reduction};
+
+    algebra.products := algebra.products{reduction};
+
+    for i in [1 .. Size(algebra.products)] do
+        algebra.products[i] := algebra.products[i]{reduction};
+        for j in [1 .. Size(algebra.products)] do
+            if algebra.products[i][j] <> false then
+                RemoveMatWithHeads(algebra.products[i][j], null);
+                algebra.products[i][j] := CertainColumns(algebra.products[i][j], reduction);
+            fi;
+        od;
+    od;
+
+    for ev in RecNames(algebra.eigenvectors) do
+        algebra.eigenvectors.(ev) := RemoveMatWithHeads(algebra.eigenvectors.(ev), null);
+        algebra.eigenvectors.(ev) := CertainColumns(algebra.eigenvectors.(ev), reduction);
+        algebra.eigenvectors.(ev) := ReversedEchelonMatDestructive(algebra.eigenvectors.(ev)).vectors;
+    od;
+
+    algebra.null := SparseMatrix(0, Size(algebra.spanningset), [], [], algebra.ring);
+
+end;
+
+DihedralAlgebrasChangeRing := function( algebra, ring )
+
+    local ev, i, j;
+
+    for ev in RecNames(algebra.eigenvectors) do
+        algebra.eigenvectors.(ev)!.entries := algebra.eigenvectors.(ev)!.entries*One(ring);
+        algebra.eigenvectors.(ev)!.ring := ring;
+    od;
+
+    if IsBound(algebra.null) then
+        algebra.null!.entries := algebra.null!.entries*One(ring);
+        algebra.null!.ring := ring;
+    fi;
+
+    for i in [1..Size(algebra.products)] do
+        for j in [1..Size(algebra.products)] do
+            if algebra.products[i][j] <> false then
+                algebra.products[i][j]!.entries := algebra.products[i][j]!.entries*One(ring);
+                algebra.products[i][j]!.ring := ring;
+            fi;
+        od;
+    od;
+
+    algebra.ring := ring;
+
+end;
+
 DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
 
-    local n, algebra, ev, first, i, j, sum;
+    local n, algebra, ev, first, i, j, k, sum, null, ind, v, coeffs;
 
     n := Size(eigenvalues);
 
@@ -46,6 +133,15 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
         for j in [1 .. n + 1] do
             algebra.products[i][j] := false;
         od;
+    od;
+
+    # Add known algebra products
+    algebra.products[1][1] := SparseMatrix(1, n + 1, [[1]], [[One(ring)]], ring);
+    algebra.products[2][2] := SparseMatrix(1, n + 1, [[2]], [[One(ring)]], ring);
+
+    for i in [2 .. n] do
+        algebra.products[1][i] := SparseMatrix(1, n + 1, [[i + 1]], [[One(ring)]], ring);
+        algebra.products[i][1] := SparseMatrix(1, n + 1, [[i + 1]], [[One(ring)]], ring);
     od;
 
     # The empty eigenvector record (for axis a_0)
@@ -70,7 +166,30 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
         algebra.eigenvectors.(String([eigenvalues[i]])) := CertainRows(first, [i]);
     od;
 
-    algebra.eigenvectors.(String([1])) := UnionOfRows( algebra.eigenvectors.(String([1])), SparseMatrix(1, n + 1, [ [1] ], [ [One(ring)] ], ring) );
+    # Assume primitivity for now
+    if IsPolynomialRing(algebra.ring) or IsFunctionField(algebra.ring) then
+        coeffs := CoefficientsRing(algebra.ring);
+        k := Size(IndeterminatesOfFunctionField(algebra.ring));
+    else
+        coeffs := algebra.ring;
+        k := 0;
+    fi;
+
+    DihedralAlgebrasChangeRing( algebra, FunctionField(coeffs, k + 1) );
+
+    ind := IndeterminatesOfFunctionField(algebra.ring);
+    null := SparseMatrix(0, n + 1, [], [], algebra.ring);
+
+    for i in [ 1 .. Nrows(algebra.eigenvectors.(String([1]))) ] do
+        v := CertainRows( algebra.eigenvectors.(String([1])), [i] );
+        v := v - SparseMatrix(1, n + 1, [[1]], [[ind[k + i]]], algebra.ring);
+        null := UnionOfRows(null, v);
+    od;
+
+    DihedralAlgebrasRemoveNullspace(null, algebra);
+
+    # Finish off recording eigenvectors
+    algebra.eigenvectors.(String([1])) := SparseMatrix(1, n, [ [1] ], [ [One(ring)] ], algebra.ring );
 
     # We might also need to look at direct sums of eigenspaces coming from the fusion table
     for sum in Union(fusiontable) do
@@ -79,17 +198,6 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
                 algebra.eigenvectors.(String(sum)) := UnionOfRows( algebra.eigenvectors.(String(sum)), algebra.eigenvectors.(String([ev])) );
             od;
         fi;
-    od;
-
-    # TODO What about primitivity?
-
-    # Add known algebra products
-    algebra.products[1][1] := SparseMatrix(1, n + 1, [[1]], [[One(ring)]], ring);
-    algebra.products[2][2] := SparseMatrix(1, n + 1, [[2]], [[One(ring)]], ring);
-
-    for i in [2 .. n] do
-        algebra.products[1][i] := SparseMatrix(1, n + 1, [[i + 1]], [[One(ring)]], ring);
-        algebra.products[i][1] := SparseMatrix(1, n + 1, [[i + 1]], [[One(ring)]], ring);
     od;
 
     return algebra;
@@ -341,7 +449,7 @@ end;
 
 DihedralAlgebrasIntersectEigenspaces := function(algebra)
 
-    local span, null, ev, za, x, prod, reduction, i, j;
+    local span, null, ev, za;
 
     span := Size(algebra.spanningset);
 
@@ -355,55 +463,7 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
         fi;
     od;
 
-    null := ReversedEchelonMatDestructive(null);
-
-    # Record any new products from the nullspace
-    for i in Reversed([1 .. span]) do
-        if null.heads[i] <> 0 then
-
-            x := algebra.spanningset[i];
-            prod := CertainRows(null.vectors, [null.heads[i]]);
-
-            # Record new product
-            if algebra.products[x[1], x[2]] = false then
-                SetEntry(prod, 1, i, Zero(algebra.ring));
-                algebra.products[x[1], x[2]] := -prod;
-                algebra.products[x[2], x[1]] := -prod;
-            elif prod!.indices[1] = [i] then
-                algebra.products[x[1], x[2]] := SparseZeroMatrix(1, span, algebra.ring);
-                algebra.products[x[2], x[1]] := SparseZeroMatrix(1, span, algebra.ring);
-            else
-                # Error("Need to check equality of new product with old");
-                # This should be picked up in remove mat with heads below
-            fi;
-        fi;
-    od;
-
-    # Adjust spanning set, algebra products and eigenvectors to remove nullspace quotient
-    reduction := Positions(null.heads, 0);
-
-    if reduction <> [1 .. Size(reduction)] then
-        Error("Problem with nullspace vectors");
-    fi;
-
-    algebra.spanningset := algebra.spanningset{reduction};
-
-    for i in [1 .. Size(algebra.products)] do
-        for j in [1 .. Size(algebra.products)] do
-            if algebra.products[i][j] <> false then
-                RemoveMatWithHeads(algebra.products[i][j], null);
-                algebra.products[i][j] := CertainColumns(algebra.products[i][j], reduction);
-            fi;
-        od;
-    od;
-
-    for ev in RecNames(algebra.eigenvectors) do
-        algebra.eigenvectors.(ev) := RemoveMatWithHeads(algebra.eigenvectors.(ev), null);
-        algebra.eigenvectors.(ev) := CertainColumns(algebra.eigenvectors.(ev), reduction);
-        algebra.eigenvectors.(ev) := ReversedEchelonMatDestructive(algebra.eigenvectors.(ev)).vectors;
-    od;
-
-    algebra.null := SparseMatrix(0, Size(algebra.spanningset), [], [], algebra.ring);
+    DihedralAlgebrasRemoveNullspace(null, algebra);
 
 end;
 
@@ -425,9 +485,9 @@ end;
 
 DihedralAlgebrasMainLoop := function(algebra)
 
-    DihedralAlgebrasEigenvectorsUnknowns(algebra, true);
+    DihedralAlgebrasEigenvectorsUnknowns(algebra);
     DihedralAlgebrasFlip(algebra);
-    DihedralAlgebrasFusion(algebra);
+    DihedralAlgebrasFusion(algebra, true);
     DihedralAlgebrasIntersectEigenspaces(algebra);
     DihedralAlgebrasExpand(algebra);
 
