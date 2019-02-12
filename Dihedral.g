@@ -160,10 +160,11 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
     # Find first eigenvectors and adjust indices
     first := FindFirstEigenvectors( eigenvalues, ring );
     first!.indices := List(first!.indices, x -> x + 1);
+    first!.ncols := n + 1;
 
     # Add these eigenvectors to the algebra
     for i in [1 .. Size(eigenvalues)] do
-        algebra.eigenvectors.(String([eigenvalues[i]])) := CertainRows(first, [i]);
+        algebra.eigenvectors.(String([eigenvalues[i]])) := ReversedEchelonMatDestructive(CertainRows(first, [i])).vectors;
     od;
 
     # Assume primitivity for now
