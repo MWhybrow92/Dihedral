@@ -168,24 +168,16 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
     od;
 
     # Assume primitivity for now
-    if IsPolynomialRing(algebra.ring) or IsFunctionField(algebra.ring) then
-        coeffs := CoefficientsRing(algebra.ring);
-        k := Size(IndeterminatesOfFunctionField(algebra.ring));
-    else
-        coeffs := algebra.ring;
-        k := 0;
-    fi;
-
-    DihedralAlgebrasChangeRing( algebra, FunctionField(coeffs, k + 1) );
+    DihedralAlgebrasChangeRing( algebra, FunctionField(algebra.ring, 2) );
 
     ind := IndeterminatesOfFunctionField(algebra.ring);
     null := SparseMatrix(0, n + 1, [], [], algebra.ring);
 
-    for i in [ 1 .. Nrows(algebra.eigenvectors.(String([1]))) ] do
-        v := CertainRows( algebra.eigenvectors.(String([1])), [i] );
-        v := v - SparseMatrix(1, n + 1, [[1]], [[ind[k + i]]], algebra.ring);
-        null := UnionOfRows(null, v);
-    od;
+    v := CertainRows( algebra.eigenvectors.(String([1])), [1] );
+    v := v - SparseMatrix(1, n + 1, [[1]], [[ind[1]]], algebra.ring);
+    null := UnionOfRows(null, v);
+
+    Error();
 
     DihedralAlgebrasRemoveNullspace(null, algebra);
 
@@ -207,24 +199,45 @@ end;
 
 DihedralAlgebrasConjugateVec := function(mat, g)
 
-    local  res, i, k, pos;
+    local  span, ring, res, i, k, pos;
 
-    # If g is the identity on vec then return
-    if ForAll(mat!.indices[1], i -> g[i] = i) then return mat; fi;
+    span := Ncols(mat);
+    ring := mat!.ring;
 
-    res := SparseMatrix(1, Ncols(mat), [[]], [[]], mat!.ring);
+    res := SparseMatrix(1, span, [[]], [[]], ring);
 
     # Loop over the non-zero indices of vec and add their image to res
     for i in [1..Size(mat!.indices[1])] do
 
+        # If the coefficient is a polynomial in \phi and \phi' then the flip exchanges the two values
+        num := List(ExtRepNumeratorRatFun(mat!.entries[i]), ShallowCopy);
+        den := List(ExtRepDenominatorRatFun(mat!.entries[i]), ShallowCopy);
+
+        for x in [num, den] do
+            for i in [1, 3 .. Size(x) - 1] do
+                for j in [1, 3 .. Size(x[i]) - 1] do
+                    if x[i][j] = 2 then
+                        x[i][j] := 1;
+                    elif x[i][j] = 1 then
+                        x[i][j] := 2;
+                    else
+                        Error("Polynomial has too many variables");
+                    fi;
+                od;
+            od;
+        od;
+
+        coeff := RationalFunctionByExtRep(FamilyObj(1), num, den);
+
+        # Now find where the spanning set vector
         k := g[mat!.indices[1, i]];
 
-        if k = fail then return fail; fi;
-
-        pos := PositionSorted(res!.indices[1], k);
-
-        Add(res!.indices[1], k, pos);
-        Add(res!.entries[1], mat!.entries[1, i], pos);
+        if k = fail then
+            # If the image of mat!.indices[1, i] gives an algebra product that is already known then use this as a vector
+            # Otherwise, add the image to the spanning set
+        else
+            res := res + coeff*SparseMatrix(1, span, [[k]], [[One(ring)]], ring );
+        fi;
     od;
 
     return res;
@@ -251,18 +264,21 @@ DihedralAlgebrasFlip := function(algebra)
         for j in [1 .. span] do
             im := flip{[i,j]};
             if not fail in im then
-                if algebra.products[i, j] <> false and algebra.products[im[1], im[2]] = false then
+                if algebra.products[i, j] <> false then
                     new := DihedralAlgebrasConjugateVec(algebra.products[i, j], flip);
                     if new <> fail then
-                        algebra.products[im[1], im[2]] := new;
+                        if algebra.products[im[1], im[2]] = false then
+                            algebra.products[im[1], im[2]] := new;
+                        else
+
+                        fi;
                     fi;
                 fi;
             fi;
         od;
     od;
 
-    # TODO This is ugly
-    # TODO Do we want to compare the image under flip to the existing prod?
+    # TODO Do we want to compare the image under flip to the existing prod? Yes
 
 end;
 
