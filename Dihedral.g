@@ -177,8 +177,6 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
     v := v - SparseMatrix(1, n + 1, [[1]], [[ind[1]]], algebra.ring);
     null := UnionOfRows(null, v);
 
-    Error();
-
     DihedralAlgebrasRemoveNullspace(null, algebra);
 
     # Finish off recording eigenvectors
@@ -197,9 +195,36 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
 
 end;
 
-DihedralAlgebrasConjugateVec := function(mat, g)
+DihedralAlgebrasFlipPolynomial := function(poly)
 
-    local  span, ring, res, i, k, pos;
+    local num, den, x, i, j;
+
+    if IsConstantRationalFunction(poly) then return poly; fi;
+
+    num := List(ExtRepNumeratorRatFun(poly), ShallowCopy);
+    den := List(ExtRepDenominatorRatFun(poly), ShallowCopy);
+
+    for x in [num, den] do
+        for i in [1, 3 .. Size(x) - 1] do
+            for j in [1, 3 .. Size(x[i]) - 1] do
+                if x[i][j] = 2 then
+                    x[i][j] := 1;
+                elif x[i][j] = 1 then
+                    x[i][j] := 2;
+                else
+                    Error("Polynomial has too many variables");
+                fi;
+            od;
+        od;
+    od;
+
+    return RationalFunctionByExtRep(RationalFunctionsFamily(FamilyObj(1)), num, den);
+
+end;
+
+DihedralAlgebrasFlipVector := function(mat, g, algebra)
+
+    local  span, ring, res, i, k, pos, coeff, prod, im;
 
     span := Ncols(mat);
     ring := mat!.ring;
@@ -210,31 +235,27 @@ DihedralAlgebrasConjugateVec := function(mat, g)
     for i in [1..Size(mat!.indices[1])] do
 
         # If the coefficient is a polynomial in \phi and \phi' then the flip exchanges the two values
-        num := List(ExtRepNumeratorRatFun(mat!.entries[i]), ShallowCopy);
-        den := List(ExtRepDenominatorRatFun(mat!.entries[i]), ShallowCopy);
+        coeff := DihedralAlgebrasFlipPolynomial(mat!.entries[1,i]);
 
-        for x in [num, den] do
-            for i in [1, 3 .. Size(x) - 1] do
-                for j in [1, 3 .. Size(x[i]) - 1] do
-                    if x[i][j] = 2 then
-                        x[i][j] := 1;
-                    elif x[i][j] = 1 then
-                        x[i][j] := 2;
-                    else
-                        Error("Polynomial has too many variables");
-                    fi;
-                od;
-            od;
-        od;
-
-        coeff := RationalFunctionByExtRep(FamilyObj(1), num, den);
-
-        # Now find where the spanning set vector
+        # Now find where the spanning set vector is sent to
         k := g[mat!.indices[1, i]];
 
         if k = fail then
             # If the image of mat!.indices[1, i] gives an algebra product that is already known then use this as a vector
             # Otherwise, add the image to the spanning set
+            im := g{algebra.spanning[mat!.indices[1,i]]};
+
+            if fail in im then Error("Can't find image of spanning set vector under flip"); fi;
+
+            prod := algebra.producs[im[1], im[2]];
+
+            if prod <> false then
+                res := res + coeff*prod;
+            else
+                Add(algebra.spanningset, SortedList(im));
+                res := res + coeff*SparseMatrix(1, span, [[Size(algebra.spanningset)]], [[One(ring)]], ring );
+            fi;
+
         else
             res := res + coeff*SparseMatrix(1, span, [[k]], [[One(ring)]], ring );
         fi;
@@ -265,20 +286,17 @@ DihedralAlgebrasFlip := function(algebra)
             im := flip{[i,j]};
             if not fail in im then
                 if algebra.products[i, j] <> false then
-                    new := DihedralAlgebrasConjugateVec(algebra.products[i, j], flip);
-                    if new <> fail then
-                        if algebra.products[im[1], im[2]] = false then
-                            algebra.products[im[1], im[2]] := new;
-                        else
-
-                        fi;
+                    new := DihedralAlgebrasFlipVector(algebra.products[i, j], flip, algebra);
+                    if algebra.products[im[1], im[2]] = false then
+                        algebra.products[im[1], im[2]] := new;
+                        algebra.products[im[2], im[1]] := new;
+                    elif algebra.products[im[1], im[2]] <> new then
+                        Error("Need to put this product into nullspace");
                     fi;
                 fi;
             fi;
         od;
     od;
-
-    # TODO Do we want to compare the image under flip to the existing prod? Yes
 
 end;
 
