@@ -33,7 +33,7 @@ DihedralAlgebrasRemoveNullspace := function(null, algebra)
     local i, j, x, prod, reduction, ev, span;
 
     span := Size(algebra.spanningset);
-    null := ReversedEchelonMatDestructive(null);
+    null := ReversedEchelonMatDestructive_Ring(null);
 
     # Record any new products from the nullspace
     for i in Reversed([1 .. span]) do
@@ -81,7 +81,7 @@ DihedralAlgebrasRemoveNullspace := function(null, algebra)
     for ev in RecNames(algebra.eigenvectors) do
         algebra.eigenvectors.(ev) := RemoveMatWithHeads(algebra.eigenvectors.(ev), null);
         algebra.eigenvectors.(ev) := CertainColumns(algebra.eigenvectors.(ev), reduction);
-        algebra.eigenvectors.(ev) := ReversedEchelonMatDestructive(algebra.eigenvectors.(ev)).vectors;
+        algebra.eigenvectors.(ev) := ReversedEchelonMatDestructive_Ring(algebra.eigenvectors.(ev)).vectors;
     od;
 
     algebra.null := SparseMatrix(0, Size(algebra.spanningset), [], [], algebra.ring);
@@ -164,7 +164,7 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
 
     # Add these eigenvectors to the algebra
     for i in [1 .. Size(eigenvalues)] do
-        algebra.eigenvectors.(String([eigenvalues[i]])) := ReversedEchelonMatDestructive(CertainRows(first, [i])).vectors;
+        algebra.eigenvectors.(String([eigenvalues[i]])) := ReversedEchelonMatDestructive_Ring(CertainRows(first, [i])).vectors;
     od;
 
     # Assume primitivity for now
@@ -473,7 +473,7 @@ DihedralAlgebrasFusion := function(algebra, expand)
 
     for ev in RecNames(new) do
         new.(ev)!.ncols := Size(algebra.spanningset);
-        new.(ev) := ReversedEchelonMatDestructive(new.(ev)).vectors;
+        new.(ev) := ReversedEchelonMatDestructive_Ring(new.(ev)).vectors;
     od;
 
     algebra.eigenvectors := new;
