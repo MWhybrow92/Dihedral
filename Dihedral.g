@@ -28,63 +28,63 @@ FindFirstEigenvectors := function(eigenvalues, ring)
 
 end;
 
-DihedralAlgebrasRemoveNullspace := function(null, algebra)
+DihedralAlgebrasRemoveNullVec := function(null, algebra)
 
-    local i, j, x, prod, reduction, ev, span;
+    local i, j, x, prod, reduction, ev, span, n, entry;
 
-    span := Size(algebra.spanningset);
-    null := ReversedEchelonMatDestructive_Ring(null);
+    if null!.entries[1] = [] then return; fi;
 
-    # Record any new products from the nullspace
-    for i in Reversed([1 .. span]) do
-        if null.heads[i] <> 0 then
+    span := Size( algebra.spanningset );
+    n := Size( null!.entries[1] );
 
-            x := algebra.spanningset[i];
-            prod := CertainRows(null.vectors, [null.heads[i]]);
-
-            # Record new product
-            if algebra.products[x[1], x[2]] = false then
-                SetEntry(prod, 1, i, Zero(algebra.ring));
-                algebra.products[x[1], x[2]] := -prod;
-                algebra.products[x[2], x[1]] := -prod;
-            elif prod!.indices[1] = [i] then
-                algebra.products[x[1], x[2]] := SparseZeroMatrix(1, span, algebra.ring);
-                algebra.products[x[2], x[1]] := SparseZeroMatrix(1, span, algebra.ring);
-            else
-                # Error("Need to check equality of new product with old");
-                # This should be picked up in remove mat with heads below
-            fi;
-        fi;
-    od;
-
-    # Adjust spanning set, algebra products and eigenvectors to remove nullspace quotient
-    reduction := Positions(null.heads, 0);
-
-    if reduction <> [1 .. Size(reduction)] then
-        Error("Problem with nullspace vectors");
+    if null!.indices[1, n] <> span then
+        Error("Null vector does not quotient last spanning set vector");
     fi;
 
-    algebra.spanningset := algebra.spanningset{reduction};
+    entry := null!.entries[1, n];
 
-    algebra.products := algebra.products{reduction};
+    if Inverse(entry) in algebra.ring then
+        null!.entries := null!.entries*Inverse(entry);
+    else
+        Error("Non invertible nullspace vec, what do we do?");
+    fi;
+
+    x := algebra.spanningset[ span ];
+    prod := CopyMat(null);
+
+    # Record new product
+    if algebra.products[x[1], x[2]] = false then
+        SetEntry(prod, 1, span, Zero(algebra.ring));
+        algebra.products[x[1], x[2]] := -prod;
+        algebra.products[x[2], x[1]] := -prod;
+    elif prod!.indices[1] = [span] then
+        algebra.products[x[1], x[2]] := SparseZeroMatrix(1, span, algebra.ring);
+        algebra.products[x[2], x[1]] := SparseZeroMatrix(1, span, algebra.ring);
+    else
+        # Error("Need to check equality of new product with old");
+        # This should be picked up in remove mat with heads below
+    fi;
+
+    Remove(algebra.spanningset);
+    Remove(algebra.products);
+
+    null := ReversedEchelonMatDestructive_Ring(null);
 
     for i in [1 .. Size(algebra.products)] do
-        algebra.products[i] := algebra.products[i]{reduction};
+        Remove(algebra.products[i]);
         for j in [1 .. Size(algebra.products)] do
             if algebra.products[i][j] <> false then
                 RemoveMatWithHeads(algebra.products[i][j], null);
-                algebra.products[i][j] := CertainColumns(algebra.products[i][j], reduction);
+                algebra.products[i][j]!.ncols := span - 1;
             fi;
         od;
     od;
 
     for ev in RecNames(algebra.eigenvectors) do
         algebra.eigenvectors.(ev) := RemoveMatWithHeads(algebra.eigenvectors.(ev), null);
-        algebra.eigenvectors.(ev) := CertainColumns(algebra.eigenvectors.(ev), reduction);
+        algebra.eigenvectors.(ev)!.ncols := span - 1;;
         algebra.eigenvectors.(ev) := ReversedEchelonMatDestructive_Ring(algebra.eigenvectors.(ev)).vectors;
     od;
-
-    algebra.null := SparseMatrix(0, Size(algebra.spanningset), [], [], algebra.ring);
 
 end;
 
@@ -96,11 +96,6 @@ DihedralAlgebrasChangeRing := function( algebra, ring )
         algebra.eigenvectors.(ev)!.entries := algebra.eigenvectors.(ev)!.entries*One(ring);
         algebra.eigenvectors.(ev)!.ring := ring;
     od;
-
-    if IsBound(algebra.null) then
-        algebra.null!.entries := algebra.null!.entries*One(ring);
-        algebra.null!.ring := ring;
-    fi;
 
     for i in [1..Size(algebra.products)] do
         for j in [1..Size(algebra.products)] do
@@ -149,8 +144,6 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
         algebra.eigenvectors.(String(ev)) := SparseMatrix(0, n + 1, [], [], ring);
     od;
 
-    algebra.null := SparseMatrix(0, n + 1, [], [], Rationals);
-
     # The spanning set at the moment is a_0, a_1, a_0(a_0a_1), a_0(a_0(a_0a_1)) etc.
     algebra.spanningset := Concatenation( [1, 2], Cartesian([1], [2..n]));
 
@@ -164,20 +157,18 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
 
     # Add these eigenvectors to the algebra
     for i in [1 .. Size(eigenvalues)] do
-        algebra.eigenvectors.(String([eigenvalues[i]])) := ReversedEchelonMatDestructive_Ring(CertainRows(first, [i])).vectors;
+        algebra.eigenvectors.(String([eigenvalues[i]])) := CertainRows(first, [i]);
     od;
 
     # Assume primitivity for now
-    DihedralAlgebrasChangeRing( algebra, FunctionField(algebra.ring, 2) );
+    DihedralAlgebrasChangeRing( algebra, PolynomialRing(algebra.ring, 2) );
 
-    ind := IndeterminatesOfFunctionField(algebra.ring);
-    null := SparseMatrix(0, n + 1, [], [], algebra.ring);
+    ind := IndeterminatesOfPolynomialRing(algebra.ring);
 
-    v := CertainRows( algebra.eigenvectors.(String([1])), [1] );
-    v := v - SparseMatrix(1, n + 1, [[1]], [[ind[1]]], algebra.ring);
-    null := UnionOfRows(null, v);
+    null := CertainRows( algebra.eigenvectors.(String([1])), [1] );
+    null := null - SparseMatrix(1, n + 1, [[1]], [[ind[1]]], algebra.ring);
 
-    DihedralAlgebrasRemoveNullspace(null, algebra);
+    DihedralAlgebrasRemoveNullVec(null, algebra);
 
     # Finish off recording eigenvectors
     algebra.eigenvectors.(String([1])) := SparseMatrix(1, n, [ [1] ], [ [One(ring)] ], algebra.ring );
@@ -243,11 +234,11 @@ DihedralAlgebrasFlipVector := function(mat, g, algebra)
         if k = fail then
             # If the image of mat!.indices[1, i] gives an algebra product that is already known then use this as a vector
             # Otherwise, add the image to the spanning set
-            im := g{algebra.spanning[mat!.indices[1,i]]};
+            im := g{algebra.spanningset[mat!.indices[1,i]]};
 
             if fail in im then Error("Can't find image of spanning set vector under flip"); fi;
 
-            prod := algebra.producs[im[1], im[2]];
+            prod := algebra.products[im[1], im[2]];
 
             if prod <> false then
                 res := res + coeff*prod;
@@ -457,7 +448,7 @@ DihedralAlgebrasFusion := function(algebra, expand)
 
                     if unknowns = [] then
                         if Size(ev) = 0 then
-                            algebra.null := MAJORANA_AddEvec(algebra.null, prod[2]);
+                            DihedralAlgebrasRemoveNullVec(prod[2], algebra);
                         else
                             for sum in Union(algebra.fusiontable) do
                                 if IsSubset(sum, ev) then
@@ -473,18 +464,14 @@ DihedralAlgebrasFusion := function(algebra, expand)
 
     for ev in RecNames(new) do
         new.(ev)!.ncols := Size(algebra.spanningset);
-        new.(ev) := ReversedEchelonMatDestructive_Ring(new.(ev)).vectors;
+        algebra.eigenvectors.(ev) := CopyMat(EchelonMatDestructive_Ring(new.(ev)).vectors);
     od;
-
-    algebra.eigenvectors := new;
-
-    algebra.null!.ncols := Size(algebra.spanningset);
 
 end;
 
 DihedralAlgebrasIntersectEigenspaces := function(algebra)
 
-    local span, null, ev, za;
+    local span, null, ev, za, v;
 
     span := Size(algebra.spanningset);
 
@@ -498,7 +485,9 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
         fi;
     od;
 
-    DihedralAlgebrasRemoveNullspace(null, algebra);
+    for v in null do
+        DihedralAlgebrasRemoveNullVec(v, algebra);
+    od;
 
 end;
 
