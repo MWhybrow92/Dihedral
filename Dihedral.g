@@ -57,9 +57,11 @@ DihedralAlgebrasRemoveNullVec := function(null, algebra)
         SetEntry(prod, 1, span, Zero(algebra.ring));
         algebra.products[x[1], x[2]] := -prod;
         algebra.products[x[2], x[1]] := -prod;
+        DihedralAlgebrasFlip(algebra);
     elif prod!.indices[1] = [span] then
         algebra.products[x[1], x[2]] := SparseZeroMatrix(1, span, algebra.ring);
         algebra.products[x[2], x[1]] := SparseZeroMatrix(1, span, algebra.ring);
+        DihedralAlgebrasFlip(algebra);
     else
         # Error("Need to check equality of new product with old");
         # This should be picked up in remove mat with heads below
@@ -185,6 +187,8 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring, primitive)
             od;
         fi;
     od;
+
+    DihedralAlgebrasFlip(algebra);
 
     return algebra;
 
@@ -389,6 +393,7 @@ DihedralAlgebrasSolutionProducts := function(system, algebra)
 
             algebra.products[x[1], x[2]] := prod;
             algebra.products[x[2], x[1]] := prod;
+            DihedralAlgebrasFlip(algebra);
 
             for j in [1..Nrows(system.vec)] do
                 pos := Position(system.mat!.indices[j], i);
@@ -434,6 +439,7 @@ DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
                 pair := system.unknowns[eqn[1]!.indices[1][1]];
                 algebra.products[pair[1], pair[2]] := eqn[2]*(1/eqn[1]!.entries[1][1]);
                 algebra.products[pair[2], pair[1]] := eqn[2]*(1/eqn[1]!.entries[1][1]);
+                DihedralAlgebrasFlip(algebra);
             elif Size(eqn[1]!.indices[1]) <> 0 then
                 system.mat := UnionOfRows(system.mat, eqn[1]);
                 system.vec := UnionOfRows(system.vec, eqn[2]);
@@ -502,6 +508,7 @@ DihedralAlgebrasFusion := function(algebra, expand)
                                 pos := Size(algebra.spanningset);
                                 algebra.products[x[1], x[2]] := SparseMatrix(1, pos, [[pos]], [[One(algebra.ring)]], algebra.ring);
                                 algebra.products[x[2], x[1]] := SparseMatrix(1, pos, [[pos]], [[One(algebra.ring)]], algebra.ring);
+                                DihedralAlgebrasFlip(algebra);
                             fi;
 
                             AddToEntry(prod[2], 1, pos, -prod[1]!.entries[1][Position(unknowns, x)]);
@@ -537,6 +544,9 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
 
     local span, null, ev, za, v;
 
+    # TODO can we fix this so that it works for primitive?
+    if algebra.primitive then return; fi;
+
     span := Size(algebra.spanningset);
 
     null := SparseMatrix(0, span, [], [], algebra.ring);
@@ -557,23 +567,39 @@ end;
 
 DihedralAlgebrasMainLoop := function(algebra)
 
-    DihedralAlgebrasEigenvectorsUnknowns(algebra);
-    DihedralAlgebrasFlip(algebra);
-    DihedralAlgebrasFusion(algebra, true);
-    DihedralAlgebrasIntersectEigenspaces(algebra);
-    DihedralAlgebrasExpand(algebra);
+    local count;
+
+    # See if we can find more algebra products without expanding the algebra
+
+    while true do
+        count := Sum( List(algebra.products, x -> Size(Positions(x, false))) );
+
+        DihedralAlgebrasFusion(algebra, false); # This bit might not be necessary
+        DihedralAlgebrasIntersectEigenspaces(algebra);
+        DihedralAlgebrasEigenvectorsUnknowns(algebra);
+        DihedralAlgebrasFindNullVecs(algebra);
+
+        if count = Sum( List(algebra.products, x -> Size(Positions(x, false))) ) then
+            return;
+        fi;
+    od;
 
 end;
 
-DihedralAlgebras := function(eigenvalues, fusiontable, ring)
+DihedralAlgebras := function(eigenvalues, fusiontable, ring, primitive)
 
     local algebra;
 
-    algebra := DihedralAlgebrasSetup(eigenvalues, fusiontable, ring);
+    algebra := DihedralAlgebrasSetup(eigenvalues, fusiontable, ring, primitive);
+    DihedralAlgebrasMainLoop(algebra);
 
     while ForAny(algebra.products, x -> false in x) do
+        DihedralAlgebrasFusion(algebra, true);
         DihedralAlgebrasMainLoop(algebra);
     od;
+
+    DihedralAlgebrasFusion(algebra, true);
+    DihedralAlgebrasMainLoop(algebra);
 
     return algebra;
 
