@@ -408,6 +408,26 @@ DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
 
 end;
 
+DihedralAlgebrasFindNullVecs := function(algebra)
+
+    local span, a, ev, v, null;
+
+    span := Size(algebra.spanningset);
+
+    a := SparseMatrix( 1, span, [[1]], [[One(algebra.ring)]], algebra.ring );
+
+    for ev in algebra.eigenvalues do
+        for v in algebra.eigenvectors.(String([ev])) do
+            null := MAJORANA_NaiveProduct(a, v, algebra.products);
+            if null <> false then
+                null := null - ev*v;
+                DihedralAlgebrasRemoveNullVec(null, algebra);
+            fi;
+        od;
+    od;
+
+end;
+
 DihedralAlgebrasFusion := function(algebra, expand)
 
     local e, new, i, j, k, evecs_a, evecs_b, unknowns, prod, pos, ev, u, v, sum, x;
