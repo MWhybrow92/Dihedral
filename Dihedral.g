@@ -34,8 +34,6 @@ DihedralAlgebrasRemoveNullVec := function(null, algebra)
 
     if null!.entries[1] = [] then return; fi;
 
-    Error();
-
     span := Size( algebra.spanningset );
     n := Size( null!.entries[1] );
 
@@ -192,6 +190,36 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring, primitive)
 
 end;
 
+DihedralAlgebrasExpand := function(algebra)
+
+    local i, j, ev, span;
+
+    span := Size(algebra.spanningset);
+
+    for i in [1 .. span] do
+        if IsBound(algebra.products[i]) then
+            for j in [Size(algebra.products) + 1 .. span] do
+                algebra.products[i, j] := false;
+            od;
+        else
+            algebra.products[i] := List( algebra.spanningset, x -> false );
+        fi;
+    od;
+
+    for i in [1 .. Size(algebra.products)] do
+        for j in [1 .. Size(algebra.products)] do
+            if algebra.products[i, j] <> false then
+                algebra.products[i, j]!.ncols := span;
+            fi;
+        od;
+    od;
+
+    for ev in RecNames(algebra.eigenvectors) do
+        algebra.eigenvectors.(ev)!.ncols := span;
+    od;
+
+end;
+
 DihedralAlgebrasFlipPolynomial := function(poly)
 
     local num, den, x, i, j;
@@ -295,7 +323,7 @@ DihedralAlgebrasFlip := function(algebra)
                         algebra.products[im[1], im[2]] := new;
                         algebra.products[im[2], im[1]] := new;
                     elif algebra.products[im[1], im[2]] <> new then
-                        Error("Need to put this product into nullspace");
+                        DihedralAlgebrasRemoveNullVec(new - algebra.products[im[1], im[2]], algebra);
                     fi;
                 fi;
             fi;
@@ -500,7 +528,7 @@ DihedralAlgebrasFusion := function(algebra, expand)
 
     for ev in RecNames(new) do
         new.(ev)!.ncols := Size(algebra.spanningset);
-        algebra.eigenvectors.(ev) := CopyMat(EchelonMatDestructive_Ring(new.(ev)).vectors);
+        algebra.eigenvectors.(ev) := CopyMat(EchelonMat_Ring(new.(ev)).vectors);
     od;
 
 end;
@@ -511,7 +539,7 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
 
     span := Size(algebra.spanningset);
 
-    null := algebra.null;
+    null := SparseMatrix(0, span, [], [], algebra.ring);
 
     # Find the intersection of all pairs of known eigenspaces and add to null
     for ev in Combinations( Union(algebra.fusiontable), 2 ) do
@@ -523,36 +551,6 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
 
     for v in null do
         DihedralAlgebrasRemoveNullVec(v, algebra);
-    od;
-
-end;
-
-DihedralAlgebrasExpand := function(algebra)
-
-    local i, j, ev, span;
-
-    span := Size(algebra.spanningset);
-
-    for i in [1 .. span] do
-        if IsBound(algebra.products[i]) then
-            for j in [Size(algebra.products) + 1 .. span] do
-                algebra.products[i, j] := false;
-            od;
-        else
-            algebra.products[i] := List( algebra.spanningset, x -> false );
-        fi;
-    od;
-
-    for i in [1 .. Size(algebra.products)] do
-        for j in [1 .. Size(algebra.products)] do
-            if algebra.products[i, j] <> false then
-                algebra.products[i, j]!.ncols := span;
-            fi;
-        od;
-    od;
-
-    for ev in RecNames(algebra.eigenvectors) do
-        algebra.eigenvectors.(ev)!.ncols := span;
     od;
 
 end;
