@@ -34,6 +34,8 @@ DihedralAlgebrasRemoveNullVec := function(null, algebra)
 
     if null!.entries[1] = [] then return; fi;
 
+    Error();
+
     span := Size( algebra.spanningset );
     n := Size( null!.entries[1] );
 
@@ -72,7 +74,7 @@ DihedralAlgebrasRemoveNullVec := function(null, algebra)
 
     for i in [1 .. Size(algebra.products)] do
         Remove(algebra.products[i]);
-        for j in [1 .. Size(algebra.products)] do
+        for j in [1 .. Size(algebra.products[i])] do
             if algebra.products[i][j] <> false then
                 RemoveMatWithHeads(algebra.products[i][j], null);
                 algebra.products[i][j]!.ncols := span - 1;
@@ -110,7 +112,7 @@ DihedralAlgebrasChangeRing := function( algebra, ring )
 
 end;
 
-DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
+DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring, primitive)
 
     local n, algebra, ev, first, i, j, k, sum, null, ind, v, coeffs;
 
@@ -122,7 +124,8 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
                     ring := ring,
                     flip := [2, 1, 3],
                     eigenvectors := rec(),
-                    products := NullMat(n + 1, n + 1) );
+                    products := NullMat(n + 1, n + 1),
+                    primitive := primitive );
 
     for i in [1 .. n + 1] do
         for j in [1 .. n + 1] do
@@ -160,18 +163,21 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring)
         algebra.eigenvectors.(String([eigenvalues[i]])) := CertainRows(first, [i]);
     od;
 
-    # Assume primitivity for now
-    DihedralAlgebrasChangeRing( algebra, PolynomialRing(algebra.ring, 2) );
+    if primitive = true then
+        DihedralAlgebrasChangeRing( algebra, PolynomialRing(algebra.ring, 2) );
 
-    ind := IndeterminatesOfPolynomialRing(algebra.ring);
+        ind := IndeterminatesOfPolynomialRing(algebra.ring);
 
-    null := CertainRows( algebra.eigenvectors.(String([1])), [1] );
-    null := null - SparseMatrix(1, n + 1, [[1]], [[ind[1]]], algebra.ring);
+        null := CertainRows( algebra.eigenvectors.(String([1])), [1] );
+        null := null - SparseMatrix(1, n + 1, [[1]], [[ind[1]]], algebra.ring);
 
-    DihedralAlgebrasRemoveNullVec(null, algebra);
+        DihedralAlgebrasRemoveNullVec(null, algebra);
 
-    # Finish off recording eigenvectors
-    algebra.eigenvectors.(String([1])) := SparseMatrix(1, n, [ [1] ], [ [One(ring)] ], algebra.ring );
+        # Finish off recording eigenvectors
+        algebra.eigenvectors.(String([1])) := SparseMatrix(1, n, [ [1] ], [ [One(ring)] ], algebra.ring );
+    else
+        algebra.eigenvectors.(String([1])) := UnionOfRows(algebra.eigenvectors.(String([1])), SparseMatrix(1, n, [ [1] ], [ [One(ring)] ], algebra.ring ) );
+    fi;
 
     # We might also need to look at direct sums of eigenspaces coming from the fusion table
     for sum in Union(fusiontable) do
@@ -215,18 +221,28 @@ end;
 
 DihedralAlgebrasFlipVector := function(mat, g, algebra)
 
-    local  span, ring, res, i, k, pos, coeff, prod, im;
+    local  span, ring, res, i, k, pos, coeff, prod, im, x;
 
-    span := Ncols(mat);
-    ring := mat!.ring;
+    span := Size(algebra.spanningset);
+    ring := algebra.ring;
+
+    # First extend the flip permutation
+    for x in algebra.spanningset{[Size(g) + 1 .. span]} do
+        im := SortedList(g{x});
+        Add( g, Position(algebra.spanningset, im) );
+    od;
 
     res := SparseMatrix(1, span, [[]], [[]], ring);
 
     # Loop over the non-zero indices of vec and add their image to res
     for i in [1..Size(mat!.indices[1])] do
 
-        # If the coefficient is a polynomial in \phi and \phi' then the flip exchanges the two values
-        coeff := DihedralAlgebrasFlipPolynomial(mat!.entries[1,i]);
+        coeff := mat!.entries[1,i];
+
+        if algebra.primitive then
+            # If the coefficient is a polynomial in \phi and \phi' then the flip exchanges the two values
+            coeff := DihedralAlgebrasFlipPolynomial(coeff);
+        fi;
 
         # Now find where the spanning set vector is sent to
         k := g[mat!.indices[1, i]];
@@ -244,6 +260,9 @@ DihedralAlgebrasFlipVector := function(mat, g, algebra)
                 res := res + coeff*prod;
             else
                 Add(algebra.spanningset, SortedList(im));
+                DihedralAlgebrasExpand(algebra);
+                span := span + 1;
+                res!.ncols := span;
                 res := res + coeff*SparseMatrix(1, span, [[Size(algebra.spanningset)]], [[One(ring)]], ring );
             fi;
 
@@ -264,12 +283,6 @@ DihedralAlgebrasFlip := function(algebra)
 
     span := Size(algebra.spanningset);
     flip := algebra.flip;
-
-    # First extend the flip permutation
-    for x in algebra.spanningset{[Size(flip) + 1 .. span]} do
-        im := SortedList(flip{x});
-        Add( flip, Position(algebra.spanningset, im) );
-    od;
 
     # Attempt to find new products from flip
     for i in [1 .. span] do
@@ -455,6 +468,9 @@ DihedralAlgebrasFusion := function(algebra, expand)
                             pos := Position(algebra.spanningset, x);
                             if pos = fail then
                                 Add(algebra.spanningset, x);
+                                DihedralAlgebrasExpand(algebra);
+                                prod[2]!.ncols := prod[2]!.ncols + 1;
+
                                 pos := Size(algebra.spanningset);
                                 algebra.products[x[1], x[2]] := SparseMatrix(1, pos, [[pos]], [[One(algebra.ring)]], algebra.ring);
                                 algebra.products[x[2], x[1]] := SparseMatrix(1, pos, [[pos]], [[One(algebra.ring)]], algebra.ring);
@@ -513,16 +529,30 @@ end;
 
 DihedralAlgebrasExpand := function(algebra)
 
-    local i, j;
+    local i, j, ev, span;
 
-    for i in [1 .. Size(algebra.spanningset)] do
+    span := Size(algebra.spanningset);
+
+    for i in [1 .. span] do
         if IsBound(algebra.products[i]) then
-            for j in [Size(algebra.products) + 1 .. Size(algebra.spanningset)] do
+            for j in [Size(algebra.products) + 1 .. span] do
                 algebra.products[i, j] := false;
             od;
         else
             algebra.products[i] := List( algebra.spanningset, x -> false );
         fi;
+    od;
+
+    for i in [1 .. Size(algebra.products)] do
+        for j in [1 .. Size(algebra.products)] do
+            if algebra.products[i, j] <> false then
+                algebra.products[i, j]!.ncols := span;
+            fi;
+        od;
+    od;
+
+    for ev in RecNames(algebra.eigenvectors) do
+        algebra.eigenvectors.(ev)!.ncols := span;
     od;
 
 end;
