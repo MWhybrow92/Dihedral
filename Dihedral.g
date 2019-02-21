@@ -1,5 +1,5 @@
 
-SparseVandermondeMat := function( values, ring )
+InstallGlobalFunction( SparseVandermondeMat, function( values, ring )
 
     local mat, n, i, j;
 
@@ -15,9 +15,9 @@ SparseVandermondeMat := function( values, ring )
 
     return mat;
 
-end;
+end );
 
-FindFirstEigenvectors := function(eigenvalues, ring)
+InstallGlobalFunction( FindFirstEigenvectors, function(eigenvalues, ring)
 
     local mat, ech;
 
@@ -26,9 +26,36 @@ FindFirstEigenvectors := function(eigenvalues, ring)
 
     return ech.coeffs;
 
-end;
+end );
 
-DihedralAlgebrasRemoveNullVec := function(null, algebra)
+InstallGlobalFunction( DihedralAlgebrasFlip, function(algebra)
+
+    local span, flip, x, im, i, j, new;
+
+    span := Size(algebra.spanningset);
+    flip := algebra.flip;
+
+    # Attempt to find new products from flip
+    for i in [1 .. span] do
+        for j in [1 .. span] do
+            im := flip{[i,j]};
+            if not fail in im then
+                if algebra.products[i, j] <> false then
+                    new := DihedralAlgebrasFlipVector(algebra.products[i, j], flip, algebra);
+                    if algebra.products[im[1], im[2]] = false then
+                        algebra.products[im[1], im[2]] := new;
+                        algebra.products[im[2], im[1]] := new;
+                    elif algebra.products[im[1], im[2]] <> new then
+                        DihedralAlgebrasRemoveNullVec(new - algebra.products[im[1], im[2]], algebra);
+                    fi;
+                fi;
+            fi;
+        od;
+    od;
+
+end );
+
+InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
 
     local i, j, x, prod, reduction, ev, span, n, entry;
 
@@ -88,9 +115,9 @@ DihedralAlgebrasRemoveNullVec := function(null, algebra)
         algebra.eigenvectors.(ev) := ReversedEchelonMatDestructive_Ring(algebra.eigenvectors.(ev)).vectors;
     od;
 
-end;
+end );
 
-DihedralAlgebrasChangeRing := function( algebra, ring )
+InstallGlobalFunction( DihedralAlgebrasChangeRing, function( algebra, ring )
 
     local ev, i, j;
 
@@ -110,9 +137,9 @@ DihedralAlgebrasChangeRing := function( algebra, ring )
 
     algebra.ring := ring;
 
-end;
+end );
 
-DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring, primitive)
+InstallGlobalFunction( DihedralAlgebrasSetup, function(eigenvalues, fusiontable, ring, primitive)
 
     local n, algebra, ev, first, i, j, k, sum, null, ind, v, coeffs;
 
@@ -192,9 +219,9 @@ DihedralAlgebrasSetup := function(eigenvalues, fusiontable, ring, primitive)
 
     return algebra;
 
-end;
+end );
 
-DihedralAlgebrasExpand := function(algebra)
+InstallGlobalFunction( DihedralAlgebrasExpand, function(algebra)
 
     local i, j, ev, span;
 
@@ -222,9 +249,9 @@ DihedralAlgebrasExpand := function(algebra)
         algebra.eigenvectors.(ev)!.ncols := span;
     od;
 
-end;
+end );
 
-DihedralAlgebrasFlipPolynomial := function(poly)
+InstallGlobalFunction( DihedralAlgebrasFlipPolynomial, function(poly)
 
     local num, den, x, i, j;
 
@@ -249,9 +276,9 @@ DihedralAlgebrasFlipPolynomial := function(poly)
 
     return RationalFunctionByExtRep(RationalFunctionsFamily(FamilyObj(1)), num, den);
 
-end;
+end );
 
-DihedralAlgebrasFlipVector := function(mat, g, algebra)
+InstallGlobalFunction( DihedralAlgebrasFlipVector, function(mat, g, algebra)
 
     local  span, ring, res, i, k, pos, coeff, prod, im, x;
 
@@ -305,11 +332,9 @@ DihedralAlgebrasFlipVector := function(mat, g, algebra)
 
     return res;
 
-    end;
+    end );
 
-## This currently works if the ring is the rationals but need to extend to polynomial rings
-
-DihedralAlgebrasFlip := function(algebra)
+InstallGlobalFunction( DihedralAlgebrasFlip, function(algebra)
 
     local span, flip, x, im, i, j, new;
 
@@ -334,9 +359,9 @@ DihedralAlgebrasFlip := function(algebra)
         od;
     od;
 
-end;
+end );
 
-MAJORANA_NaiveSeparateAlgebraProduct := function( u, v, unknowns, products)
+InstallGlobalFunction( MAJORANA_NaiveSeparateAlgebraProduct, function( u, v, unknowns, products)
 
     local span, lhs, rhs, i, j, pair, pos, prod;
 
@@ -369,9 +394,9 @@ MAJORANA_NaiveSeparateAlgebraProduct := function( u, v, unknowns, products)
 
     return [lhs, rhs];
 
-end;
+end );
 
-DihedralAlgebrasSolutionProducts := function(system, algebra)
+InstallGlobalFunction( DihedralAlgebrasSolutionProducts, function(system, algebra)
 
     local i, j, x, prod, pos, elm, nonzero_rows;
 
@@ -414,10 +439,9 @@ DihedralAlgebrasSolutionProducts := function(system, algebra)
     system.mat := CertainRows(system.mat, nonzero_rows);
     system.vec := CertainRows(system.vec, nonzero_rows);
 
-end;
+end );
 
-
-DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
+InstallGlobalFunction( DihedralAlgebrasEigenvectorsUnknowns, function(algebra)
 
     local span, ring, u, system, v, eqn, ev, pair;
 
@@ -453,9 +477,9 @@ DihedralAlgebrasEigenvectorsUnknowns := function(algebra)
 
     return system;
 
-end;
+end );
 
-DihedralAlgebrasFindNullVecs := function(algebra)
+InstallGlobalFunction( DihedralAlgebrasFindNullVecs, function(algebra)
 
     local span, a, ev, v, null;
 
@@ -473,9 +497,9 @@ DihedralAlgebrasFindNullVecs := function(algebra)
         od;
     od;
 
-end;
+end );
 
-DihedralAlgebrasFusion := function(algebra, expand)
+InstallGlobalFunction( DihedralAlgebrasFusion, function(algebra, expand)
 
     local e, new, i, j, k, evecs_a, evecs_b, unknowns, prod, pos, ev, u, v, sum, x;
 
@@ -538,9 +562,9 @@ DihedralAlgebrasFusion := function(algebra, expand)
         algebra.eigenvectors.(ev) := CopyMat(EchelonMat_Ring(new.(ev)).vectors);
     od;
 
-end;
+end );
 
-DihedralAlgebrasIntersectEigenspaces := function(algebra)
+InstallGlobalFunction( DihedralAlgebrasIntersectEigenspaces, function(algebra)
 
     local span, null, ev, za, v;
 
@@ -563,9 +587,9 @@ DihedralAlgebrasIntersectEigenspaces := function(algebra)
         DihedralAlgebrasRemoveNullVec(v, algebra);
     od;
 
-end;
+end );
 
-DihedralAlgebrasMainLoop := function(algebra)
+InstallGlobalFunction( DihedralAlgebrasMainLoop, function(algebra)
 
     local count;
 
@@ -584,9 +608,9 @@ DihedralAlgebrasMainLoop := function(algebra)
         fi;
     od;
 
-end;
+end );
 
-DihedralAlgebras := function(eigenvalues, fusiontable, ring, primitive)
+InstallGlobalFunction( DihedralAlgebras, function(eigenvalues, fusiontable, ring, primitive)
 
     local algebra;
 
@@ -603,10 +627,10 @@ DihedralAlgebras := function(eigenvalues, fusiontable, ring, primitive)
 
     return algebra;
 
-end;
+end );
 
-JordanTable := function(nu)
+InstallGlobalFunction( JordanTable, function(nu)
 
     return [ [ [1], [], [nu] ], [ [], [0], [nu] ], [ [nu], [nu], [1, 0] ] ];
 
-end;
+end );
