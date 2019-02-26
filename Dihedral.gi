@@ -151,6 +151,14 @@ InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
         algebra.eigenvectors.(ev) := ReversedEchelonMatDestructive_Ring(algebra.eigenvectors.(ev)).vectors;
     od;
 
+    if IsBound(algebra.new) then
+        for ev in RecNames(algebra.new) do
+            algebra.new.(ev) := RemoveMatWithHeads(algebra.new.(ev), null);
+            algebra.new.(ev) := CertainColumns(algebra.new.(ev), reduction);
+            algebra.new.(ev) := ReversedEchelonMatDestructive_Ring(algebra.new.(ev)).vectors;
+        od;
+    fi;
+
 end );
 
 InstallGlobalFunction( DihedralAlgebrasChangeRing, function( algebra, ring )
@@ -506,11 +514,11 @@ end );
 
 InstallGlobalFunction( DihedralAlgebrasFusion, function(algebra, expand)
 
-    local e, new, i, j, k, evecs_a, evecs_b, unknowns, prod, pos, ev, u, v, sum, x;
+    local e, i, j, k, evecs_a, evecs_b, unknowns, prod, pos, ev, u, v, sum, x;
 
     e := Size(algebra.eigenvalues);
 
-    new := ShallowCopy(algebra.eigenvectors);
+    algebra.new := ShallowCopy(algebra.eigenvectors);
 
     # TODO we could make this for Union(fusiontable) then find union of table entries?
     for i in [1 .. e] do
@@ -547,15 +555,13 @@ InstallGlobalFunction( DihedralAlgebrasFusion, function(algebra, expand)
                         prod[2]!.ncols := Size(algebra.spanningset);
                     fi;
 
-
-
                     if unknowns = [] then
                         if Size(ev) = 0 then
                             DihedralAlgebrasRemoveNullVec(prod[2], algebra);
                         else
                             for sum in Union(algebra.fusiontable) do
                                 if IsSubset(sum, ev) then
-                                    new.(String(sum)) := UnionOfRows(new.(String(sum)), -prod[2]);
+                                    algebra.new.(String(sum)) := UnionOfRows(algebra.new.(String(sum)), -prod[2]);
                                 fi;
                             od;
                         fi;
@@ -565,10 +571,12 @@ InstallGlobalFunction( DihedralAlgebrasFusion, function(algebra, expand)
         od;
     od;
 
-    for ev in RecNames(new) do
-        new.(ev)!.ncols := Size(algebra.spanningset);
-        algebra.eigenvectors.(ev) := CopyMat(EchelonMat_Ring(new.(ev)).vectors);
+    for ev in RecNames(algebra.new) do
+        algebra.new.(ev)!.ncols := Size(algebra.spanningset);
+        algebra.eigenvectors.(ev) := CopyMat(EchelonMat_Ring(algebra.new.(ev)).vectors);
     od;
+
+    Unbind(algebra.new);
 
 end );
 
@@ -590,6 +598,9 @@ InstallGlobalFunction( DihedralAlgebrasIntersectEigenspaces, function(algebra)
             null := UnionOfRows(null, za[2]);
         fi;
     od;
+
+    # TODO this should be _ring but it doesn't actually give them in reversed order here
+    null := ReversedEchelonMatDestructive(null).vectors;
 
     for v in null do
         DihedralAlgebrasRemoveNullVec(v, algebra);
