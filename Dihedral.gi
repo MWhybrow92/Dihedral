@@ -47,46 +47,62 @@ end );
 
 InstallGlobalFunction( DihedralAlgebrasFlip, function(algebra)
 
-    local span, flip, x, im, i, j, new;
+    local flip, x, im, i, j, new;
 
-    span := Size(algebra.spanningset);
     flip := FindFlip(algebra);
 
     # Attempt to find new products from flip
-    for i in [1 .. span] do
-        for j in [1 .. span] do
-            im := flip{[i,j]};
-            if not fail in im then
-                if algebra.products[i, j] <> false then
+    for i in [1 .. Size(algebra.spanningset)] do
+        if i <= Size(algebra.spanningset) then
+            for j in [1 .. Size(algebra.spanningset)] do
+                if j <= Size(algebra.spanningset) then
+                    im := flip{[i,j]};
+                    if not fail in im then
+                        if algebra.products[i, j] <> false then
 
-                    new := DihedralAlgebrasFlipVector(algebra.products[i, j], flip, algebra);
-                    flip := FindFlip(algebra);
+                            # if Size(flip) >= 10 then Error(); fi;
 
-                    if algebra.products[im[1], im[2]] = false then
-                        algebra.products[im[1], im[2]] := new;
-                        algebra.products[im[2], im[1]] := new;
-                    elif algebra.products[im[1], im[2]] <> new then
-                        DihedralAlgebrasRemoveNullVec(new - algebra.products[im[1], im[2]], algebra);
+                            new := DihedralAlgebrasFlipVector(algebra.products[i, j], flip, algebra);
+                            flip := FindFlip(algebra);
+
+                            if algebra.products[im[1], im[2]] = false then
+                                algebra.products[im[1], im[2]] := new;
+                                algebra.products[im[2], im[1]] := new;
+                            elif algebra.products[im[1], im[2]] <> new then
+                                DihedralAlgebrasRemoveNullVec(new - algebra.products[im[1], im[2]], algebra);
+                            fi;
+                        fi;
                     fi;
                 fi;
-            fi;
-        od;
+            od;
+        fi;
     od;
 
 end );
 
 InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
 
-    local i, j, x, prod, reduction, ev, span, n, entry;
+    local i, j, x, prod, reduction, ev, span, n, entry, k;
 
     if null!.entries[1] = [] then return; fi;
 
     span := Size( algebra.spanningset );
     n := Size( null!.entries[1] );
+    k := null!.indices[1, n];
 
-    if null!.indices[1, n] <> span then
-        Error("Null vector does not quotient last spanning set vector");
-    fi;
+    for i in [ k + 1 .. span ] do
+        if k in algebra.spanningset[i] then
+            Error("Quotient vector is involved in other basis elements");
+        fi;
+        if algebra.spanningset[i, 1] > k then
+            algebra.spanningset[i, 1] := algebra.spanningset[i, 1] - 1;
+        fi;
+        if algebra.spanningset[i, 2] > k then
+            algebra.spanningset[i, 2] := algebra.spanningset[i, 2] - 1;
+        fi;
+    od;
+
+    reduction := Difference([1 .. span], [k]);
 
     entry := null!.entries[1, n];
 
@@ -114,24 +130,24 @@ InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
         # This should be picked up in remove mat with heads below
     fi;
 
-    Remove(algebra.spanningset);
-    Remove(algebra.products);
+    algebra.spanningset := algebra.spanningset{reduction};
+    algebra.products := algebra.products{reduction};
 
     null := ReversedEchelonMatDestructive_Ring(null);
 
     for i in [1 .. Size(algebra.products)] do
-        Remove(algebra.products[i]);
+        algebra.products[i] := algebra.products[i]{reduction};
         for j in [1 .. Size(algebra.products[i])] do
             if algebra.products[i][j] <> false then
                 RemoveMatWithHeads(algebra.products[i][j], null);
-                algebra.products[i][j]!.ncols := span - 1;
+                algebra.products[i,j] := CertainColumns(algebra.products[i,j], reduction);
             fi;
         od;
     od;
 
     for ev in RecNames(algebra.eigenvectors) do
         algebra.eigenvectors.(ev) := RemoveMatWithHeads(algebra.eigenvectors.(ev), null);
-        algebra.eigenvectors.(ev)!.ncols := span - 1;;
+        algebra.eigenvectors.(ev) := CertainColumns(algebra.eigenvectors.(ev), reduction);
         algebra.eigenvectors.(ev) := ReversedEchelonMatDestructive_Ring(algebra.eigenvectors.(ev)).vectors;
     od;
 
@@ -402,7 +418,6 @@ InstallGlobalFunction( DihedralAlgebrasSolutionProducts, function(system, algebr
 
             algebra.products[x[1], x[2]] := prod;
             algebra.products[x[2], x[1]] := prod;
-            DihedralAlgebrasFlip(algebra);
 
             for j in [1..Nrows(system.vec)] do
                 pos := Position(system.mat!.indices[j], i);
@@ -414,14 +429,20 @@ InstallGlobalFunction( DihedralAlgebrasSolutionProducts, function(system, algebr
         fi;
     od;
 
-    system.mat := CertainColumns(system.mat, Positions(system.solutions, fail) );
-    system.unknowns := system.unknowns{ Positions(system.solutions, fail) };
+    DihedralAlgebrasFlip(algebra);
 
-    Unbind(system.solutions);
+    # I don't think that this is necessary:
 
-    nonzero_rows := Filtered([1..Nrows(system.mat)], j -> system.mat!.indices[j] <> []);
-    system.mat := CertainRows(system.mat, nonzero_rows);
-    system.vec := CertainRows(system.vec, nonzero_rows);
+    # system.mat := CertainColumns(system.mat, Positions(system.solutions, fail) );
+    # system.unknowns := system.unknowns{ Positions(system.solutions, fail) };
+
+    # Unbind(system.solutions);
+
+    # nonzero_rows := Filtered([1..Nrows(system.mat)], j -> system.mat!.indices[j] <> []);
+    # system.mat := CertainRows(system.mat, nonzero_rows);
+    # system.vec := CertainRows(system.vec, nonzero_rows);
+
+
 
 end );
 
@@ -511,7 +532,6 @@ InstallGlobalFunction( DihedralAlgebrasFusion, function(algebra, expand)
                             if pos = fail then
                                 Add(algebra.spanningset, x);
                                 DihedralAlgebrasExpand(algebra);
-                                prod[2]!.ncols := prod[2]!.ncols + 1;
 
                                 pos := Size(algebra.spanningset);
                                 algebra.products[x[1], x[2]] := SparseMatrix(1, pos, [[pos]], [[One(algebra.ring)]], algebra.ring);
@@ -523,7 +543,11 @@ InstallGlobalFunction( DihedralAlgebrasFusion, function(algebra, expand)
                         od;
 
                         unknowns := [];
+
+                        prod[2]!.ncols := Size(algebra.spanningset);
                     fi;
+
+
 
                     if unknowns = [] then
                         if Size(ev) = 0 then
@@ -575,7 +599,7 @@ end );
 
 InstallGlobalFunction( DihedralAlgebrasMainLoop, function(algebra)
 
-    local count;
+    local count, span;
 
     # See if we can find more algebra products without expanding the algebra
 
