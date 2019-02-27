@@ -80,27 +80,17 @@ InstallGlobalFunction( DihedralAlgebrasFlip, function(algebra)
 
 end );
 
+# TODO test this function and break it into smaller funcs
+
 InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
 
-    local i, j, x, prod, reduction, ev, span, n, entry, k;
+    local i, j, x, prod, reduction, ev, span, n, entry, k, u, v;
 
     if null!.entries[1] = [] then return; fi;
 
     span := Size( algebra.spanningset );
     n := Size( null!.entries[1] );
     k := null!.indices[1, n];
-
-    for i in [ k + 1 .. span ] do
-        if k in algebra.spanningset[i] then
-            Error("Quotient vector is involved in other basis elements");
-        fi;
-        if algebra.spanningset[i, 1] > k then
-            algebra.spanningset[i, 1] := algebra.spanningset[i, 1] - 1;
-        fi;
-        if algebra.spanningset[i, 2] > k then
-            algebra.spanningset[i, 2] := algebra.spanningset[i, 2] - 1;
-        fi;
-    od;
 
     reduction := Difference([1 .. span], [k]);
 
@@ -130,10 +120,14 @@ InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
         # This should be picked up in remove mat with heads below
     fi;
 
-    algebra.spanningset := algebra.spanningset{reduction};
-    algebra.products := algebra.products{reduction};
-
+    # Remove the null vector from products and eigenvectors
     null := ReversedEchelonMatDestructive_Ring(null);
+
+    # TODO Should we take the reduction or does this mess things up later on?
+    # TODO Maybe unbind the irrevelant funcs and delete them at the end or something?
+    # TODO Or maybe the iterative part where we correct the spanning set needs to come first?
+
+    algebra.products := algebra.products{reduction};
 
     for i in [1 .. Size(algebra.products)] do
         algebra.products[i] := algebra.products[i]{reduction};
@@ -158,6 +152,44 @@ InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
             algebra.new.(ev) := ReversedEchelonMatDestructive_Ring(algebra.new.(ev)).vectors;
         od;
     fi;
+
+    # Correct the spanning set labels
+    for i in [ k + 1 .. span ] do
+        x := algebra.spanningset[i];
+        if k in x then
+            # Error("Quotient vector is involved in other basis elements");
+            if x[1] = k then
+                u := null;
+            else
+                u := SparseMatrix(1, span, [[ x[1] ]], [[ One(algebra.ring) ]], algebra.ring);
+            fi;
+
+            if x[2] = k then
+                v := null;
+            else
+                v := SparseMatrix(1, span, [[ x[2] ]], [[ One(algebra.ring) ]], algebra.ring);
+            fi;
+
+            prod := MAJORANA_NaiveProduct(u, v, algebra.products);
+
+            if prod = false then Error("Can't find product - what do we do?"); fi;
+
+            prod := SparseMatrix(1, span, [[i]], [[One(algebra.ring)]], algebra.ring) - prod;
+
+            DihedralAlgebrasRemoveNullVec(prod, algebra);
+        fi;
+    od;
+
+    for i in [ k + 1 .. span ] do
+        if x[1] > k then
+            algebra.spanningset[i, 1] := algebra.spanningset[i, 1] - 1;
+        fi;
+        if algebra.spanningset[i, 2] > k then
+            algebra.spanningset[i, 2] := algebra.spanningset[i, 2] - 1;
+        fi;
+    od;
+
+    Remove(algebra.spanningset, k);
 
 end );
 

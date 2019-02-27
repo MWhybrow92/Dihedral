@@ -6,6 +6,8 @@ DeclareGlobalFunction( "FindFlip" );
 
 DeclareGlobalFunction( "DihedralAlgebrasFlip" );
 
+DeclareGlobalFunction( "DihedralAlgebrasRemoveNullVecFromBasisElts" );
+
 DeclareGlobalFunction( "DihedralAlgebrasRemoveNullVec" );
 
 DeclareGlobalFunction( "DihedralAlgebrasChangeRing" );
