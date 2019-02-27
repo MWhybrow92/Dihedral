@@ -215,7 +215,6 @@ InstallGlobalFunction( DihedralAlgebrasSetup, function(eigenvalues, fusiontable,
     algebra := rec( eigenvalues := eigenvalues,
                     fusiontable := fusiontable,
                     ring := ring,
-                    flip := [2, 1, 3],
                     eigenvectors := rec(),
                     products := NullMat(n + 1, n + 1),
                     primitive := primitive );
