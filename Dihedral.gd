@@ -8,6 +8,8 @@ DeclareGlobalFunction( "DihedralAlgebrasFlip" );
 
 DeclareGlobalFunction( "DihedralAlgebrasRemoveNullVecFromBasisElts" );
 
+DeclareGlobalFunction( "DihedralAlgebrasSolvePolynomial" );
+
 DeclareGlobalFunction( "DihedralAlgebrasRemoveNullVec" );
 
 DeclareGlobalFunction( "DihedralAlgebrasChangeRing" );

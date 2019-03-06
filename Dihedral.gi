@@ -80,7 +80,75 @@ InstallGlobalFunction( DihedralAlgebrasFlip, function(algebra)
 
 end );
 
-# TODO test this function and break it into smaller funcs
+InstallGlobalFunction( DihedralAlgebrasSolvePolynomial, function(poly, algebra)
+
+    local rep, monomials, var, pos, coeff, new, x, i, j, k, entries, ev;
+
+    rep := ExtRepPolynomialRatFun(poly);
+    monomials := rep{[1, 3 .. Size(rep) - 1]};
+
+    # If poly contains any multivariate monomials then we can't solve it
+    if ForAny(monomials, x -> Size(x) > 2) then
+        Add(algebra.polynomials, poly);
+        return;
+    fi;
+
+    # If the poly is linear in either of the indeterminants then we can solve it
+    if Size( Filtered(monomials, x -> x[1] = 2) ) = 1 and [2, 1] in monomials then
+        var := 2;
+        pos := Position(rep, [2,1] );
+    elif Size( Filtered(monomials, x -> x[1] = 1) ) = 1 and [1, 1] in monomials then
+        var := 1;
+        pos := Position(rep, [1,1] );
+    else
+        Add(algebra.polynomials, poly);
+        return;
+    fi;
+
+    coeff := rep[pos + 1];
+
+    if not Inverse(coeff)*One(algebra.ring) in algebra.ring then
+        Error("Cannot solve polynomial");
+    fi;
+
+    x := IndeterminatesOfPolynomialRing(algebra.ring);
+
+    new := poly*Inverse(coeff);
+    new := x[var] - new;
+
+    # Substitute the new value into products and eigenvectors
+    for i in [1 .. Size(algebra.products)] do
+        for j in [1 .. Size(algebra.products[i])] do
+            entries := algebra.products[i,j]!.entries[1];
+            for k in [1.. Size(entries)] do
+                entries[k] := Value(entries[k], [ x[pos] ], [ new ] );
+                entries[k] := entries[k]*One(algebra.ring);
+                if entries[k] = Zero(algebra.ring) then
+                    Unbind(entries[k]);
+                    Remove(algebra.products[i,j]!.indices[1], k);
+                fi;
+                algebra.products[i,j]!.entries[1] := Compacted(entries);
+            od;
+        od;
+    od;
+
+    for ev in RecNames(algebra.eigenvectors) do
+        for i in [1 .. Nrows(algebra.eigenvectors.(ev))] do
+            entries := algebra.eigenvectors.(ev)!.entries[i];
+            for k in [1 .. Size(entries)] do
+                if not entries[k] in algebra.ring then Error(); fi;
+                entries[k] := Value(entries[k], [ x[pos] ], [ new ] );
+                entries[k] := entries[k]*One(algebra.ring);
+                if entries[k] = Zero(algebra.ring) then
+                    Unbind(entries[k]);
+                    Remove(algebra.eigenvectors.(ev)!.indices[i], k);
+                fi;
+                algebra.eigenvectors.(ev)!.entries[i] := Compacted(entries);
+            od;
+        od;
+    od;
+
+end );
 
 InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
 
@@ -93,6 +161,15 @@ InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
     k := null!.indices[1, n];
 
     entry := null!.entries[1, n];
+
+    if k in [1, 2] then
+        if IsConstantRationalFunction(entry) then
+            Error("Algebra is one or zero dimensional");
+        else
+            DihedralAlgebrasSolvePolynomial(entry, algebra);
+            return;
+        fi;
+    fi;
 
     if Inverse(entry) in algebra.ring then
         null!.entries := null!.entries*Inverse(entry);
@@ -217,6 +294,7 @@ InstallGlobalFunction( DihedralAlgebrasSetup, function(eigenvalues, fusiontable,
                     ring := ring,
                     eigenvectors := rec(),
                     products := NullMat(n + 1, n + 1),
+                    polynomials := [],
                     primitive := primitive );
 
     for i in [1 .. n + 1] do
@@ -263,9 +341,9 @@ InstallGlobalFunction( DihedralAlgebrasSetup, function(eigenvalues, fusiontable,
         DihedralAlgebrasRemoveNullVec(null, algebra);
 
         # Finish off recording eigenvectors
-        algebra.eigenvectors.(String([1])) := SparseMatrix(1, n, [ [1] ], [ [One(ring)] ], algebra.ring );
+        algebra.eigenvectors.(String([1])) := SparseMatrix(1, n, [ [1] ], [ [One(algebra.ring)] ], algebra.ring );
     else
-        algebra.eigenvectors.(String([1])) := UnionOfRows(algebra.eigenvectors.(String([1])), SparseMatrix(1, n, [ [1] ], [ [One(ring)] ], algebra.ring ) );
+        algebra.eigenvectors.(String([1])) := UnionOfRows(algebra.eigenvectors.(String([1])), SparseMatrix(1, n, [ [1] ], [ [One(algebra.ring)] ], algebra.ring ) );
     fi;
 
     # We might also need to look at direct sums of eigenspaces coming from the fusion table
