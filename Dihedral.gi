@@ -89,6 +89,7 @@ InstallGlobalFunction( DihedralAlgebrasSolvePolynomial, function(poly, algebra)
 
     # If poly contains any multivariate monomials then we can't solve it
     if ForAny(monomials, x -> Size(x) > 2) then
+        # TODO Scale poly and check if it is already in the list
         Add(algebra.polynomials, poly);
         return;
     fi;
@@ -101,6 +102,7 @@ InstallGlobalFunction( DihedralAlgebrasSolvePolynomial, function(poly, algebra)
         var := 1;
         pos := Position(rep, [1,1] );
     else
+        # TODO Scale poly and check if it is already in the list
         Add(algebra.polynomials, poly);
         return;
     fi;
@@ -173,6 +175,9 @@ InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
 
     if Inverse(entry) in algebra.ring then
         null!.entries := null!.entries*Inverse(entry);
+    elif n = 1 and not IsConstantRationalFunction(entry) then
+        DihedralAlgebrasSolvePolynomial(entry, algebra);
+        return;
     else
         Error("Non invertible nullspace vec, what do we do?");
     fi;
@@ -745,7 +750,6 @@ InstallGlobalFunction( DihedralAlgebras, function(eigenvalues, fusiontable, ring
         DihedralAlgebrasMainLoop(algebra);
     od;
 
-    DihedralAlgebrasFusion(algebra, true);
     DihedralAlgebrasMainLoop(algebra);
 
     return algebra;
