@@ -10,6 +10,8 @@ DeclareGlobalFunction( "DihedralAlgebrasRemoveNullVecFromBasisElts" );
 
 DeclareGlobalFunction( "DihedralAlgebrasSolvePolynomial" );
 
+DeclareGlobalFunction( "DihedralAlgebrasValue" );
+
 DeclareGlobalFunction( "DihedralAlgebrasRemoveNullVec" );
 
 DeclareGlobalFunction( "DihedralAlgebrasChangeRing" );

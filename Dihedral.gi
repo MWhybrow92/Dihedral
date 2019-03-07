@@ -60,8 +60,6 @@ InstallGlobalFunction( DihedralAlgebrasFlip, function(algebra)
                     if not fail in im then
                         if algebra.products[i, j] <> false then
 
-                            # if Size(flip) >= 10 then Error(); fi;
-
                             new := DihedralAlgebrasFlipVector(algebra.products[i, j], flip, algebra);
                             flip := FindFlip(algebra);
 
@@ -71,6 +69,7 @@ InstallGlobalFunction( DihedralAlgebrasFlip, function(algebra)
                             elif algebra.products[im[1], im[2]] <> new then
                                 DihedralAlgebrasRemoveNullVec(new - algebra.products[im[1], im[2]], algebra);
                             fi;
+
                         fi;
                     fi;
                 fi;
@@ -82,15 +81,20 @@ end );
 
 InstallGlobalFunction( DihedralAlgebrasSolvePolynomial, function(poly, algebra)
 
-    local rep, monomials, var, pos, coeff, new, x, i, j, k, entries, ev;
+    local rep, monomials, var, pos, coeff, new, x;
 
     rep := ExtRepPolynomialRatFun(poly);
     monomials := rep{[1, 3 .. Size(rep) - 1]};
 
     # If poly contains any multivariate monomials then we can't solve it
     if ForAny(monomials, x -> Size(x) > 2) then
-        # TODO Scale poly and check if it is already in the list
-        Add(algebra.polynomials, poly);
+        coeff := rep[Size(rep)];
+        if Inverse(coeff)*One(algebra.ring) in algebra.ring then
+            poly := poly*Inverse(coeff);
+        fi;
+        if not poly in algebra.polynomials then
+            Add(algebra.polynomials, poly);
+        fi;
         return;
     fi;
 
@@ -102,8 +106,13 @@ InstallGlobalFunction( DihedralAlgebrasSolvePolynomial, function(poly, algebra)
         var := 1;
         pos := Position(rep, [1,1] );
     else
-        # TODO Scale poly and check if it is already in the list
-        Add(algebra.polynomials, poly);
+        coeff := rep[Size(rep)];
+        if Inverse(coeff)*One(algebra.ring) in algebra.ring then
+            poly := poly*Inverse(coeff);
+        fi;
+        if not poly in algebra.polynomials then
+            Add(algebra.polynomials, poly);
+        fi;
         return;
     fi;
 
@@ -119,11 +128,28 @@ InstallGlobalFunction( DihedralAlgebrasSolvePolynomial, function(poly, algebra)
     new := x[var] - new;
 
     # Substitute the new value into products and eigenvectors
+    DihedralAlgebrasValue([x[var]], [new], algebra);
+
+    if Size(x) = 1 then
+        DihedralAlgebrasChangeRing( algebra, algebra.coefficients );
+    elif var = 2 then
+        DihedralAlgebrasChangeRing( algebra, PolynomialRing(algebra.coefficients, 1) );
+    elif var = 1 then
+        DihedralAlgebrasValue( algebra, [x[2]], [x[1]]);
+        DihedralAlgebrasChangeRing( algebra, PolynomialRing(algebra.coefficients, 1) );
+    fi;
+
+end );
+
+InstallGlobalFunction( DihedralAlgebrasValue, function(indets, vals, algebra)
+
+    local i, j, k, entries, ev;
+
     for i in [1 .. Size(algebra.products)] do
         for j in [1 .. Size(algebra.products[i])] do
             entries := algebra.products[i,j]!.entries[1];
             for k in [1.. Size(entries)] do
-                entries[k] := Value(entries[k], [ x[pos] ], [ new ] );
+                entries[k] := Value(entries[k], indets, vals );
                 entries[k] := entries[k]*One(algebra.ring);
                 if entries[k] = Zero(algebra.ring) then
                     Unbind(entries[k]);
@@ -139,7 +165,7 @@ InstallGlobalFunction( DihedralAlgebrasSolvePolynomial, function(poly, algebra)
             entries := algebra.eigenvectors.(ev)!.entries[i];
             for k in [1 .. Size(entries)] do
                 if not entries[k] in algebra.ring then Error(); fi;
-                entries[k] := Value(entries[k], [ x[pos] ], [ new ] );
+                entries[k] := Value(entries[k], indets, vals );
                 entries[k] := entries[k]*One(algebra.ring);
                 if entries[k] = Zero(algebra.ring) then
                     Unbind(entries[k]);
@@ -149,6 +175,9 @@ InstallGlobalFunction( DihedralAlgebrasSolvePolynomial, function(poly, algebra)
             od;
         od;
     od;
+
+    algebra.polynomials := List(algebra.polynomials, p -> Value(p, indets, vals ));
+    algebra.polynomials := DuplicateFreeList(algebra.polynomials)*One(algebra.ring);
 
 end );
 
@@ -296,6 +325,7 @@ InstallGlobalFunction( DihedralAlgebrasSetup, function(eigenvalues, fusiontable,
     # Set up the algebra record
     algebra := rec( eigenvalues := eigenvalues,
                     fusiontable := fusiontable,
+                    coefficients := ring,
                     ring := ring,
                     eigenvectors := rec(),
                     products := NullMat(n + 1, n + 1),
@@ -396,10 +426,12 @@ InstallGlobalFunction( DihedralAlgebrasExpand, function(algebra)
 
 end );
 
-InstallGlobalFunction( DihedralAlgebrasFlipPolynomial, function(poly)
+InstallGlobalFunction( DihedralAlgebrasFlipPolynomial, function(poly, algebra)
 
     local num, den, x, i, j;
 
+    if algebra.ring = algebra.coefficients then return poly; fi;
+    if Size(IndeterminatesOfPolynomialRing(algebra.ring)) < 2 then return poly; fi;
     if IsConstantRationalFunction(poly) then return poly; fi;
 
     num := List(ExtRepNumeratorRatFun(poly), ShallowCopy);
@@ -439,7 +471,7 @@ InstallGlobalFunction( DihedralAlgebrasFlipVector, function(mat, g, algebra)
 
         if algebra.primitive then
             # If the coefficient is a polynomial in \phi and \phi' then the flip exchanges the two values
-            coeff := DihedralAlgebrasFlipPolynomial(coeff);
+            coeff := DihedralAlgebrasFlipPolynomial(coeff, algebra);
         fi;
 
         # Now find where the spanning set vector is sent to
