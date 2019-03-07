@@ -34,6 +34,8 @@ DeclareGlobalFunction( "DihedralAlgebrasFindNullVecs" );
 
 DeclareGlobalFunction( "DihedralAlgebrasFusion" );
 
+DeclareGlobalFunction( "DihedralAlgebrasAddEvec" );
+
 DeclareGlobalFunction( "DihedralAlgebrasIntersectEigenspaces" );
 
 DeclareGlobalFunction( "DihedralAlgebrasMainLoop" );

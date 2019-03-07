@@ -697,7 +697,7 @@ InstallGlobalFunction( DihedralAlgebrasFusion, function(algebra, expand)
                         else
                             for sum in Union(algebra.fusiontable) do
                                 if IsSubset(sum, ev) then
-                                    algebra.new.(String(sum)) := UnionOfRows(algebra.new.(String(sum)), -prod[2]);
+                                    algebra.new.(String(sum)) :=  DihedralAlgebrasAddEvec( algebra.new.(String(sum)), -prod[2] );
                                 fi;
                             od;
                         fi;
@@ -718,12 +718,32 @@ InstallGlobalFunction( DihedralAlgebrasFusion, function(algebra, expand)
 
 end );
 
+InstallGlobalFunction( DihedralAlgebrasAddEvec, function ( mat, x )
+
+    local coeff;
+
+    if x!.indices[1] = [  ] then
+        return mat;
+    fi;
+
+    coeff := x!.entries[1, Size( x!.entries[1] )];
+
+    if false and Inverse(coeff) in mat!.ring then
+        x!.entries := x!.entries*Inverse(coeff);
+    fi;
+
+    if _IsRowOfSparseMatrix( mat, x ) then
+        return mat;
+    else
+        return UnionOfRows( mat, x );
+    fi;
+    return;
+end );
+
+
 InstallGlobalFunction( DihedralAlgebrasIntersectEigenspaces, function(algebra)
 
     local span, null, ev, za, v;
-
-    # TODO can we fix this so that it works for primitive?
-    if algebra.primitive then return; fi;
 
     span := Size(algebra.spanningset);
 
@@ -733,12 +753,14 @@ InstallGlobalFunction( DihedralAlgebrasIntersectEigenspaces, function(algebra)
     for ev in Combinations( Union(algebra.fusiontable), 2 ) do
         if not [] in ev and Intersection(ev[1], ev[2]) = [] then
             za := SumIntersectionSparseMat( algebra.eigenvectors.(String(ev[1])), algebra.eigenvectors.(String(ev[2])) );
-            null := UnionOfRows(null, za[2]);
+            for v in za[2] do
+                null := DihedralAlgebrasAddEvec(null, za[2]);
+            od;
         fi;
     od;
 
     # TODO this should be _ring but it doesn't actually give them in reversed order here
-    null := ReversedEchelonMatDestructive(null).vectors;
+    null := ReversedEchelonMatDestructive_Ring(null).vectors;
 
     for v in null do
         DihedralAlgebrasRemoveNullVec(v, algebra);
