@@ -428,30 +428,10 @@ end );
 
 InstallGlobalFunction( DihedralAlgebrasFlipPolynomial, function(poly, algebra)
 
-    local num, den, x, i, j;
-
     if algebra.ring = algebra.coefficients then return poly; fi;
     if Size(IndeterminatesOfPolynomialRing(algebra.ring)) < 2 then return poly; fi;
-    if IsConstantRationalFunction(poly) then return poly; fi;
 
-    num := List(ExtRepNumeratorRatFun(poly), ShallowCopy);
-    den := List(ExtRepDenominatorRatFun(poly), ShallowCopy);
-
-    for x in [num, den] do
-        for i in [1, 3 .. Size(x) - 1] do
-            for j in [1, 3 .. Size(x[i]) - 1] do
-                if x[i][j] = 2 then
-                    x[i][j] := 1;
-                elif x[i][j] = 1 then
-                    x[i][j] := 2;
-                else
-                    Error("Polynomial has too many variables");
-                fi;
-            od;
-        od;
-    od;
-
-    return RationalFunctionByExtRep(RationalFunctionsFamily(FamilyObj(1)), num, den);
+    return OnIndeterminates(poly, (1,2))
 
 end );
 
