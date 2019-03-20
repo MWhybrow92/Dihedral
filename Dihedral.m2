@@ -43,6 +43,12 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
         algebra.evecs#{1} = standardAxialVector(1, n);
         )
     else algebra.evecs#{1} = algebra.evecs#{1}|standardAxialVector(1, n);
+    for sum in unique(keys(tbl)) do (
+        if #sum > 1 then (
+            for ev in sum do algebra.evecs#sum = algebra.evecs#sum|algebra.evecs#ev
+            );
+        );
+    performFlip(algebra);
     algebra
     )
 
@@ -69,5 +75,24 @@ changeRingOfAlgebra = (algebra, r) -> (
     )
 
 quotientNullVec = (algebra, vec) -> (
+    nonzero := positions( flatten(entries(vec)), i -> i != 0);
+    if #nonzero = 1 then
+        if isPolynomialRing(algebra.field) and #support(entry) > 0 then (
+            -- add polynomial to ideal gens
+            );
+        else subProduct(algebra, vec*0, nonzero#1 );
+    else if #nonzero > 1 then (
+        if isPolynomialRing(algebra.field) and #support(entry) > 0 then (
+            -- error
+        else subProduct(algebra, --corrected vector--, last(nonzero) );
+        )
+
+    )
+
+subProduct = (algebra, prod, i) -> (
+    -- set the product given by span#i to be prod
+    )
+
+performFlip = algebra -> (
 
     )
