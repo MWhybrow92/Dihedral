@@ -253,7 +253,8 @@ InstallGlobalFunction( DihedralAlgebrasRemoveNullVec, function(null, algebra)
     span := Size(algebra.spanningset);
 
     for i in [ k + 1 .. span ] do
-        if x[1] > k then
+        # if x[1] > k then OLD VERSION but I think that this is wrong
+        if algebra.spanningset[i, 1] > k then
             algebra.spanningset[i, 1] := algebra.spanningset[i, 1] - 1;
         fi;
         if algebra.spanningset[i, 2] > k then
@@ -431,7 +432,7 @@ InstallGlobalFunction( DihedralAlgebrasFlipPolynomial, function(poly, algebra)
     if algebra.ring = algebra.coefficients then return poly; fi;
     if Size(IndeterminatesOfPolynomialRing(algebra.ring)) < 2 then return poly; fi;
 
-    return OnIndeterminates(poly, (1,2))
+    return OnIndeterminates(poly, (1,2));
 
 end );
 
