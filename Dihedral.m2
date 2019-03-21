@@ -2,7 +2,7 @@ AxialAlgebra = new Type of MutableHashTable
 AxialVector  = new Type of MutableList
 
 zeroAxialVector = (n) -> matrix { toList(n:0) }
-standardAxialVector = (i, n) -> matrix { toList( splice( (i-1:0, 1, n-i:0) ) ) }
+standardAxialVector = (i, n) -> matrix { toList( splice( (i:0, 1, n-i-1:0) ) ) }
 
 JordanTable = n -> hashTable {
     {1,1} => set {1}, {1,0} => set {}, {1,n} => set {n},
@@ -19,7 +19,7 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     algebra.tbl = tbl;
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
-    algebra.spanningset = {1,2} | apply({2..n}, x -> {1,x});
+    algebra.spanningset = new mutableList from {1,2} | apply({2..n}, x -> new mutableList from {1,x});
     -- Add products as list of lists
     algebra.products = new MutableList from {};
     for i to n do (
@@ -76,21 +76,56 @@ changeRingOfAlgebra = (algebra, r) -> (
 
 quotientNullVec = (algebra, vec) -> (
     nonzero := positions( flatten(entries(vec)), i -> i != 0);
-    if #nonzero = 1 then
+    if #nonzero = 0 then return;
+    k := last nonzero;
+    entry := vec_(0,k);
+    if #nonzero = 1 then (
         if isPolynomialRing(algebra.field) and #support(entry) > 0 then (
-            -- add polynomial to ideal gens
+            algebra.polynomials = append(algebra.polynomials, entry);
+            return;
             );
-        else subProduct(algebra, vec*0, nonzero#1 );
+        else prod := vec*0;
     else if #nonzero > 1 then (
         if isPolynomialRing(algebra.field) and #support(entry) > 0 then (
-            -- error
-        else subProduct(algebra, --corrected vector--, last(nonzero) );
+            error "Leading coefficient of null vector is a polynomial";
+        else prod := standardAxialVector(k, #prod) - vec*(1/entry);
+        );
+
+    for i in k+1 .. #algebra.spanningset do (
+        x := algebra.spanningset#i;
+        if member(k,x) then (
+            if x#0 == k then u := prod;
+            else u := standardAxialVector(0,#prod);
+            if x#1 == k then v := prod;
+            else v := standardAxialVector(1,#prod);
+
+            new := axialProduct(u, v, algebra.products);
+            if new = false then error "Cannot find product";
+            quotientNullVec(algebra, standardAxialVector(i, #new) - new);
+            );
+
+    for i in k+1 .. #algebra.spanningset do (
+        if
         )
+
+
+
 
     )
 
-subProduct = (algebra, prod, i) -> (
-    -- set the product given by span#i to be prod
+axialProduct = (u, v, products) -> -- Is this the right way to do it? Probably not
+    l := {};
+    for i to #u do (
+        if u#i != 0 then (
+            for j to #v do (
+                if v#j != 0 then (
+                    if products#i#j = false then return false;
+                    l = append( l, (u#i)*(v#j)*products#i#j );
+                    );
+                );
+            );
+        );
+    sum l
     )
 
 performFlip = algebra -> (
