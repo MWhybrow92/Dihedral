@@ -19,36 +19,35 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     algebra.tbl = tbl;
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
-    algebra.span = new MutableList from {1,2} | apply({2..n}, x -> new MutableList from {1,x});
+    algebra.span = new MutableList from {1,2} | apply(toList(2..n), x -> new MutableList from {1,x});
     -- Add products as list of lists
     algebra.products = new MutableList from {};
     for i to n - 1 do (
         algebra.products#i = new MutableList from {};
         for j to n - 1 do algebra.products#i#j = false;
         );
-    for i to n - 1 do algebra.products#i#i = standardAxialVector(i, n);
+    for i to n - 1 do algebra.products#i#i = standardAxialVector(i, n + 1);
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
     for ev in delete( set({}), unique(values(tbl))) do (
-        algebra.evecs#ev = zeroAxialVector n;
+        algebra.evecs#ev = zeroAxialVector(n + 1);
         );
     evecs := findFirstEigenvectors(evals, algebra.field);
-    for i to n - 1 do algebra.evecs#({evals#i}) = matrix evecs_{i};
+    for i to n - 1 do algebra.evecs#(set {evals#i}) = matrix evecs_{i};
     -- If we assume primitivity then change the field to a polynomial ring
     if algebra.primitive = true then (
         changeRingOfAlgebra(algebra, algebra.field[x,y]);
-        vec := algebra.evecs#{1} - x*sub(standardAxialVector(0,n), ring(x));
+        vec := algebra.evecs#(set {1}) - x*sub(standardAxialVector(0,n + 1), ring(x));
         quotientNullVec(algebra, vec);
         n = #algebra.span;
-        algebra.evecs#{1} = standardAxialVector(0, n);
+        algebra.evecs#(set {1}) = standardAxialVector(0, n);
         )
-    else algebra.evecs#{1} = algebra.evecs#{1}|standardAxialVector(0, n);
-    for sum in unique(values(tbl)) do (
-        if #(toList sum) > 1 then (
-            for ev in (toList sum) do algebra.evecs#sum = algebra.evecs#sum|algebra.evecs#({ev})
+    else algebra.evecs#(set {1}) = algebra.evecs#(set {1})|standardAxialVector(0, n + 1);
+    for sum1 in unique(values(tbl)) do (
+        if #(toList sum1) > 1 then (
+            for ev in (toList sum1) do algebra.evecs#sum1 = algebra.evecs#sum1|algebra.evecs#(set {ev})
             );
         );
-    performFlip(algebra);
     algebra
     )
 
@@ -56,7 +55,9 @@ findFirstEigenvectors = (evals, field) -> (
     n := #evals;
     mat := toList apply( 0..n-1, i -> toList apply( 0..n-1, j -> (evals#i)^j ));
     mat = matrix(field, mat);
-    inverse mat
+    mat = inverse mat;
+    z := transpose zeroAxialVector n;
+    z || mat
     )
 
 changeRingOfAlgebra = (algebra, r) -> (
@@ -79,7 +80,7 @@ quotientNullVec = (algebra, vec) -> (
     if #nonzero == 0 then return;
     n := #algebra.span;
     k := last nonzero;
-    entry := vec_(k-1,0);
+    entry := vec_(k,0);
     if #nonzero == 1 then (
         if isPolynomialRing(algebra.field) and #support(entry) > 0 then (
             algebra.polynomials = append(algebra.polynomials, entry);
@@ -93,6 +94,7 @@ quotientNullVec = (algebra, vec) -> (
         else prod = standardAxialVector(k,n) - vec*(sub(1/entry, ring(vec)));
         );
     vec = vec*sub(1/entry, ring(vec));
+    error "pause";
     for i in k+1 .. n-1 do (
         x := algebra.span#i;
         if member(k,x) then (
@@ -111,6 +113,7 @@ quotientNullVec = (algebra, vec) -> (
         );
     reduction := toList drop(0..n - 1,{k,k});
     algebra.products = drop(algebra.products,{k,k});
+    -- TODO need to reverse vec and algebra.product before reducing so that last spanning set vector is removed (same for evecs)
     for i to #algebra.products - 1 do (
         algebra.products#i = drop(algebra.products#i,{k,k});
         for j to #algebra.products#i - 1 do (
