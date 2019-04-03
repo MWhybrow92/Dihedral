@@ -119,10 +119,7 @@ quotientNullVec = (algebra, vec) -> (
         algebra.products#i = drop(algebra.products#i,{k,k});
         for j to #algebra.products#i - 1 do (
             if algebra.products#i#j =!= false then (
-                if algebra.products#i#j =!= 0*algebra.products#i#j then (
-                    algebra.products#i#j = (vec%algebra.products#i#j)^reduction;
-                    )
-                else algebra.products#i#j = algebra.products#i#j^reduction;
+                    algebra.products#i#j = (algebra.products#i#j%vec)^reduction;
                 );
             );
         );
@@ -148,11 +145,6 @@ axialProduct = (u, v, products) -> (
             );
         );
     sum l
-    )
-
-reverseReduce = ( mat, vec ) -> (
-
-
     )
 
 performFlip = algebra -> (
