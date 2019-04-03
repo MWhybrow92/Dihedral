@@ -45,7 +45,10 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     else algebra.evecs#(set {1}) = algebra.evecs#(set {1})|standardAxialVector(0, n + 1);
     for sum1 in unique(values(tbl)) do (
         if #(toList sum1) > 1 then (
-            for ev in (toList sum1) do algebra.evecs#sum1 = algebra.evecs#sum1|algebra.evecs#(set {ev})
+            for ev in (toList sum1) do (
+                algebra.evecs#sum1 = algebra.evecs#sum1|algebra.evecs#(set {ev});
+                algebra.evecs#sum1 = groebnerBasis algebra.evecs#sum1;
+                );
             );
         );
     algebra
@@ -94,7 +97,6 @@ quotientNullVec = (algebra, vec) -> (
         else prod = standardAxialVector(k,n) - vec*(sub(1/entry, ring(vec)));
         );
     vec = vec*sub(1/entry, ring(vec));
-    error "pause";
     for i in k+1 .. n-1 do (
         x := algebra.span#i;
         if member(k,x) then (
@@ -113,18 +115,22 @@ quotientNullVec = (algebra, vec) -> (
         );
     reduction := toList drop(0..n - 1,{k,k});
     algebra.products = drop(algebra.products,{k,k});
-    -- TODO need to reverse vec and algebra.product before reducing so that last spanning set vector is removed (same for evecs)
     for i to #algebra.products - 1 do (
         algebra.products#i = drop(algebra.products#i,{k,k});
         for j to #algebra.products#i - 1 do (
             if algebra.products#i#j =!= false then (
-                algebra.products#i#j = (algebra.products#i#j%vec)^reduction;
+                if algebra.products#i#j =!= 0*algebra.products#i#j then (
+                    algebra.products#i#j = (vec%algebra.products#i#j)^reduction;
+                    )
+                else algebra.products#i#j = algebra.products#i#j^reduction;
                 );
             );
         );
     for ev in keys algebra.evecs do (
-        algebra.evecs#ev = (algebra.evecs#ev%vec)^reduction;
-        -- find basis of evecs?
+        if algebra.evecs#ev =!= 0*algebra.evecs#ev then (
+            algebra.evecs#ev = groebnerBasis (vec%algebra.evecs#ev)^reduction;
+            )
+        else algebra.evecs#ev = algebra.evecs#ev^reduction;
         );
     algebra.span = drop(algebra.span, {k,k});
     )
@@ -142,6 +148,11 @@ axialProduct = (u, v, products) -> (
             );
         );
     sum l
+    )
+
+reverseReduce = ( mat, vec ) -> (
+
+
     )
 
 performFlip = algebra -> (
