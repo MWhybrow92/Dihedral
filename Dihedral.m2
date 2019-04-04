@@ -56,6 +56,23 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     algebra
     )
 
+fusion = algebra -> (
+    for ev0 in algebra.evals do (
+        for ev1 in algebra.evals do (
+            for i to numgens target algebra.evecs#ev0 do (
+                for j to numgens target algebra.evecs#ev1 do (
+                    u := (algebra.evecs#ev0)_0;
+                    v := (algebra.evecs#ev1)_0;
+                    unknowns := {};
+                    prod := axialSeparateProduct(u, v, unknowns, algebra.products);
+
+                    -- if there are unknown values then expand the algebra
+                    );
+                );
+            );
+        );
+    )
+
 findFirstEigenvectors = (evals, field) -> (
     n := #evals;
     mat := toList apply( 0..n-1, i -> toList apply( 0..n-1, j -> (evals#i)^j ));
@@ -133,6 +150,30 @@ quotientNullVec = (algebra, vec) -> (
     )
 
 reduce = (u, v, k) -> u - v*u^{k}
+
+-- might want to swap lhs and rhs now that we are working with columns
+axialSeparateProduct = (u,  v, unknowns, products) -> (
+    lhs := new MutableList from {};
+    rhs := {};
+    for i to #u do (
+        if u#i != 0 then (
+            for j to #v do (
+                if v#j != 0 then (
+                    if products#i#j === false then (
+                        pos = position( sort {i,j}, unknowns );
+                        if pos === null then (
+                            unknowns = append(unknowns, sort {i,j});
+                            pos = #unknowns;
+                            );
+                        lhs#pos = {u#i*v#j}
+                        )
+                    else rhs = append( rhs, (u#i)*(v#j)*products#i#j );
+                    );
+                );
+            );
+        );
+    {rhs, sum lhs}
+    )
 
 axialProduct = (u, v, products) -> (
     l := {};
