@@ -121,20 +121,18 @@ quotientNullVec = (algebra, vec) -> (
         algebra.products#i = drop(algebra.products#i,{k,k});
         for j to #algebra.products#i - 1 do (
             if algebra.products#i#j =!= false then (
-                if algebra.products#i#j^{k} == 0 then (
-                    algebra.products#i#j = (algebra.products#i#j%vec)^reduction;
-                    )
-                else algebra.products#i#j = (vec%algebra.products#i#j)^reduction;
+                algebra.products#i#j = (reduce(algebra.products#i#j, vec, k))^reduction;
                 );
             );
         );
     for ev in keys algebra.evecs do (
-        if algebra.evecs#ev^{k} == 0 then algebra.evecs#ev = (vec%algebra.evecs#ev)^reduction
-        else algebra.evecs#ev = (algebra.evecs#ev%vec)^reduction;
+        algebra.evecs#ev = (reduce(algebra.evecs#ev, vec, k))^reduction;
         algebra.evecs#ev = groebnerBasis algebra.evecs#ev;
         );
     algebra.span = drop(algebra.span, {k,k});
     )
+
+reduce = (u, v, k) -> u - v*u^{k}
 
 axialProduct = (u, v, products) -> (
     l := {};
