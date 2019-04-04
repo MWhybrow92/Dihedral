@@ -19,14 +19,16 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     algebra.tbl = tbl;
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
-    algebra.span = new MutableList from {1,2} | apply(toList(2..n), x -> new MutableList from {1,x});
+    algebra.span = new MutableList from {0,1} | apply(toList(1..n-1), x -> new MutableList from {0,x});
     -- Add products as list of lists
     algebra.products = new MutableList from {};
     for i to n - 1 do (
         algebra.products#i = new MutableList from {};
         for j to n - 1 do algebra.products#i#j = false;
         );
-    for i to n - 1 do algebra.products#i#i = standardAxialVector(i, n + 1);
+    for i to 1 do algebra.products#i#i = standardAxialVector(i, n + 1);
+    for i in 1..n-1 do algebra.products#0#i = standardAxialVector(i + 1, n + 1);
+    for i in 1..n-1 do algebra.products#i#0 = standardAxialVector(i + 1, n + 1);
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
     for ev in delete( set({}), unique(values(tbl))) do (
@@ -119,15 +121,17 @@ quotientNullVec = (algebra, vec) -> (
         algebra.products#i = drop(algebra.products#i,{k,k});
         for j to #algebra.products#i - 1 do (
             if algebra.products#i#j =!= false then (
+                if algebra.products#i#j^{k} == 0 then (
                     algebra.products#i#j = (algebra.products#i#j%vec)^reduction;
+                    )
+                else algebra.products#i#j = (vec%algebra.products#i#j)^reduction;
                 );
             );
         );
     for ev in keys algebra.evecs do (
-        if algebra.evecs#ev =!= 0*algebra.evecs#ev then (
-            algebra.evecs#ev = groebnerBasis (vec%algebra.evecs#ev)^reduction;
-            )
-        else algebra.evecs#ev = algebra.evecs#ev^reduction;
+        if algebra.evecs#ev^{k} == 0 then algebra.evecs#ev = (vec%algebra.evecs#ev)^reduction
+        else algebra.evecs#ev = (algebra.evecs#ev%vec)^reduction;
+        algebra.evecs#ev = groebnerBasis algebra.evecs#ev;
         );
     algebra.span = drop(algebra.span, {k,k});
     )
@@ -147,6 +151,56 @@ axialProduct = (u, v, products) -> (
     sum l
     )
 
-performFlip = algebra -> (
-
+findFlip = algebra -> (
+    n := #algebra.span;
+    f := {1, 0, 2};
+    if n < 4 then return f;
+    for x in algebra.span_(toList(3..n-1)) do (
+        im := sort f_x;
+        f = append(f, position(im, algebra.span));
+        );
+    f
     )
+
+flipVector = (vec, f) -> (
+    r := ring vec;
+    vec = apply( entries vec, p -> sub(p#0, {r_0 => r_1, r_1 => r_0}));
+    res := sub(zeroAxialVector(#vec), r);
+    for i to #vec - 1 do (
+        k := f#i;
+        if k === null then (
+            im := f_(algebra.span#i);
+            if member(null, im) then error "Can't find image of vec under flip";
+            if algebra.products#(im#0)#(im#1) =!= false then (
+                res = res + algebra.products#(im#0)#(im#1)*(vec#i)
+                )
+            else (
+                algebra.span = append(algebra.span, sort im);
+                expandAlgebra(algebra);
+                res = res || matrix({{0}});
+                res = res + sub(standardAxialVector(#res - 1, #res - 1),r)*vec#i;
+                );
+        )
+        else res = res + sub(standardAxialVector(k, #algebra.span),r)*vec#i;
+    );
+    res
+    )
+
+performFlip = algebra -> (
+    n = #algebra.span;
+    f = findFlip algebra;
+    -- might need to be more careful with the indices if a nullspace vec occurs here
+    for i to n -1 do (
+        for j to n - 1 do (
+            im := f_{i,j};
+            if not member(null, im) and algebra.products#i#j =!= false then (
+                vec := flipVector(algebra.products#i#j, f);
+                if algebra.products#(im#0)#(im#1) === false then (
+                    algebra.products#(im#0)#(im#1) = vec;
+                    algebra.products#(im#1)#(im#0) = vec;
+                    )
+                else quotientNullVec(algebra, vec-algebra.products#(im#0)#(im#1));
+                );
+            );
+        );
+    );
