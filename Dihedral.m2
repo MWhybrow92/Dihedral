@@ -53,6 +53,7 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
                 );
             );
         );
+    performFlip algebra;
     algebra
     )
 
@@ -74,10 +75,10 @@ fusion = algebra -> (
                         algebra.span = append(algebra.span, x);
                         expandAlgebra algebra;
                         n := #algebra.span;
-                        algebra.products#(x#0)(x#1) = standardAxialVector(n-1, n);
-                        algebra.products#(x#1)(x#0) = standardAxialVector(n-1, n);
+                        algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), algebra.field);
+                        algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), algebra.field);
                         prod.vec = prod.vec || matrix({{0}});
-                        prod.mat = prod.mat - algebra.products#(x#1)(x#0)*(prod.mat)#k;
+                        prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat)#k#0;
                         );
                     if ev === set {} then quotientNullVec(algebra, prod.vec)
                     else (
@@ -99,18 +100,24 @@ fusion = algebra -> (
 expandAlgebra = algebra -> (
     n := #algebra.span;
     k := #algebra.products;
-    for i to k do algebra.products#i = append(algebra.products#i, (k - n):false );
-    algebra.products = append(algebra.products, (n-k):(n-1:false));
+    for i to k - 1 do algebra.products#i = join(algebra.products#i , new MutableList from (n-k):false) ;
+    algebra.products = join(algebra.products, new MutableList from (n-k):(new MutableList from (n:false)));
     for i to n - 1 do (
         for j to n - 1 do (
-            if algebra.products#i'j =!= false then (
+            if algebra.products#i#j =!= false then (
                 algebra.products#i#j = algebra.products#i#j || matrix({{0}})
                 );
             );
         );
     for ev in keys algebra.evecs do (
-        d := #numgens target algebra.evecs#ev;
+        d := numgens source algebra.evecs#ev;
         algebra.evecs#ev = algebra.evecs#ev || matrix( {toList(d:0)});
+        );
+    if algebra#?temp then (
+        for ev in keys algebra.temp do (
+            d := numgens source algebra.temp#ev;
+            algebra.temp#ev = algebra.temp#ev || matrix( {toList(d:0)});
+            );
         );
     )
 
@@ -187,7 +194,7 @@ quotientNullVec = (algebra, vec) -> (
         algebra.evecs#ev = (reduce(algebra.evecs#ev, vec, k))^reduction;
         algebra.evecs#ev = groebnerBasis algebra.evecs#ev;
         );
-    if member(temp, keys algebra) then (
+    if algebra#?temp then (
         for ev in keys algebra.temp do (
             algebra.temp#ev = (reduce(algebra.temp#ev, vec, k))^reduction;
             algebra.temp#ev = groebnerBasis algebra.temp#ev;
@@ -210,7 +217,7 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
                         pos = position( unknowns, x -> x == sort {i,j} );
                         if pos === null then (
                             unknowns = append(unknowns, sort {i,j});
-                            pos = #unknowns;
+                            pos = #unknowns - 1;
                             );
                         lhs#pos = {u_(i,0)*v_(j,0)}
                         )
@@ -219,7 +226,7 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
                 );
             );
         );
-    new HashTable from {vec => sum(rhs), mat => lhs, l => unknowns }
+    new MutableHashTable from {vec => sum(rhs), mat => lhs, l => unknowns }
     )
 
 axialProduct = (u, v, products) -> (
@@ -267,7 +274,7 @@ flipVector = (vec, f) -> (
                 res = res + sub(standardAxialVector(#res - 1, #res - 1),r)*vec#i;
                 );
         )
-        else res = res + sub(standardAxialVector(k, #algebra.span),r)*vec#i;
+        else res = res + sub(standardAxialVector(k, #vec),r)*vec#i;
     );
     res
     )
