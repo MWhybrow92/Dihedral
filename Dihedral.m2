@@ -57,13 +57,15 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     )
 
 fusion = algebra -> (
+    algebra.temp = copy algebra.evecs;
     for ev0 in algebra.evals do (
+        print ev0;
         for ev1 in algebra.evals do (
             ev := algebra.tbl#({ev0,ev1});
-            for i to numgens target algebra.evecs#(set {ev0}) do (
-                for j to numgens target algebra.evecs#(set {ev1}) do (
-                    u := (algebra.evecs#(set {ev0}))_i;
-                    v := (algebra.evecs#(set {ev1}))_j;
+            for i to numgens source algebra.evecs#(set {ev0}) - 1 do (
+                for j to numgens source algebra.evecs#(set {ev1}) - 1 do (
+                    u := (algebra.evecs#(set {ev0}))_{i};
+                    v := (algebra.evecs#(set {ev1}))_{j};
                     unknowns := {};
                     prod := axialSeparateProduct(u, v, unknowns, algebra.products);
                     for k to #unknowns - 1 do (
@@ -73,14 +75,14 @@ fusion = algebra -> (
                         n := #algebra.span;
                         algebra.products#(x#0)(x#1) = standardAxialVector(n-1, n);
                         algebra.products#(x#1)(x#0) = standardAxialVector(n-1, n);
-                        prod.rhs = prod.rhs || matrix({{0}});
-                        prod.rhs = prod.rhs - algebra.products#(x#1)(x#0)*(prod.lhs)#k;
+                        prod.vec = prod.vec || matrix({{0}});
+                        prod.mat = prod.mat - algebra.products#(x#1)(x#0)*(prod.mat)#k;
                         );
-                    if ev === set {} then quotientNullVec(algebra, prod.rhs)
+                    if ev === set {} then quotientNullVec(algebra, prod.vec)
                     else (
                         for s in unique values tbl do(
-                            if isSubset(ev, sum) then (
-                                algebra.evecs#s = algebra.evecs#s | -prod.rhs;
+                            if isSubset(ev, s) then (
+                                algebra.temp#s = algebra.temp#s | prod.vec;
                                 );
                             );
                         );
@@ -88,6 +90,8 @@ fusion = algebra -> (
                 );
             );
         );
+        for ev in keys algebra.temp do algebra.evecs#ev = groebnerBasis algebra.temp#ev;
+        remove(algebra, temp);
         performFlip algebra;
     )
 
@@ -182,6 +186,12 @@ quotientNullVec = (algebra, vec) -> (
         algebra.evecs#ev = (reduce(algebra.evecs#ev, vec, k))^reduction;
         algebra.evecs#ev = groebnerBasis algebra.evecs#ev;
         );
+    if member(temp, keys algebra) then (
+        for ev in keys algebra.temp do (
+            algebra.temp#ev = (reduce(algebra.temp#ev, vec, k))^reduction;
+            algebra.temp#ev = groebnerBasis algebra.temp#ev;
+            );
+        );
     algebra.span = drop(algebra.span, {k,k});
     )
 
@@ -191,34 +201,34 @@ reduce = (u, v, k) -> u - v*u^{k}
 axialSeparateProduct = (u,  v, unknowns, products) -> (
     lhs := new MutableList from {};
     rhs := {};
-    for i to #u do (
-        if u_i =!= 0 then (
-            for j to #v do (
-                if v_j =!= 0 then (
+    for i to numgens target u - 1 do (
+        if u_(i,0) =!= 0 then (
+            for j to numgens target v - 1 do (
+                if v_(j,0) =!= 0 then (
                     if products#i#j === false then (
-                        pos = position( sort {i,j}, unknowns );
+                        pos = position( unknowns, x -> x == sort {i,j} );
                         if pos === null then (
                             unknowns = append(unknowns, sort {i,j});
                             pos = #unknowns;
                             );
-                        lhs#pos = {u_i*v_j}
+                        lhs#pos = {u_(i,0)*v_(j,0)}
                         )
-                    else rhs = append( rhs, (u_i)*(v_j)*products#i#j );
+                    else rhs = append( rhs, (u_(i,0))*(v_(j,0))*products#i#j );
                     );
                 );
             );
         );
-    new hashTable from ( "rhs" => rhs, "lhs" => sum(lhs) )
+    new HashTable from {vec => sum(rhs), mat => lhs }
     )
 
 axialProduct = (u, v, products) -> (
     l := {};
-    for i to #u do (
-        if u#i != 0 then (
-            for j to #v do (
-                if v#j != 0 then (
+    for i to numgens target u - 1 do (
+        if u_(i,0) =!= 0 then (
+            for j to numgens target v - 1 do (
+                if v_(j,0) =!= 0 then (
                     if products#i#j === false then return false;
-                    l = append( l, (u#i)*(v#j)*products#i#j );
+                    l = append( l, (u_(i,0))*(v_(j,0))*products#i#j );
                     );
                 );
             );
