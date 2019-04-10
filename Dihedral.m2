@@ -59,7 +59,6 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
 fusion = algebra -> (
     algebra.temp = copy algebra.evecs;
     for ev0 in algebra.evals do (
-        print ev0;
         for ev1 in algebra.evals do (
             ev := algebra.tbl#({ev0,ev1});
             for i to numgens source algebra.evecs#(set {ev0}) - 1 do (
@@ -68,6 +67,8 @@ fusion = algebra -> (
                     v := (algebra.evecs#(set {ev1}))_{j};
                     unknowns := {};
                     prod := axialSeparateProduct(u, v, unknowns, algebra.products);
+                    unknowns = prod.l;
+                    print (#unknowns);
                     for k to #unknowns - 1 do (
                         x := unknowns#k;
                         algebra.span = append(algebra.span, x);
@@ -218,7 +219,7 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
                 );
             );
         );
-    new HashTable from {vec => sum(rhs), mat => lhs }
+    new HashTable from {vec => sum(rhs), mat => lhs, l => unknowns }
     )
 
 axialProduct = (u, v, products) -> (
