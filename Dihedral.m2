@@ -19,7 +19,7 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     algebra.tbl = tbl;
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
-    algebra.span = new MutableList from {0,1} | apply(toList(1..n-1), x -> new MutableList from {0,x});
+    algebra.span = {0,1} | apply(toList(1..n-1), x -> new MutableList from {0,x});
     -- Add products as list of lists
     algebra.products = new MutableList from {};
     for i to n - 1 do (
@@ -70,6 +70,7 @@ fusion = algebra -> (
                     prod := axialSeparateProduct(u, v, unknowns, algebra.products);
                     unknowns = prod.l;
                     print (#unknowns);
+                    if #unknowns > 1 then error ("pause");
                     for k to #unknowns - 1 do (
                         x := unknowns#k;
                         algebra.span = append(algebra.span, x);
@@ -210,9 +211,9 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
     lhs := new MutableList from {};
     rhs := {};
     for i to numgens target u - 1 do (
-        if u_(i,0) =!= 0 then (
+        if u_(i,0) != 0 then (
             for j to numgens target v - 1 do (
-                if v_(j,0) =!= 0 then (
+                if v_(j,0) != 0 then (
                     if products#i#j === false then (
                         pos = position( unknowns, x -> x == sort {i,j} );
                         if pos === null then (
@@ -232,9 +233,9 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
 axialProduct = (u, v, products) -> (
     l := {};
     for i to numgens target u - 1 do (
-        if u_(i,0) =!= 0 then (
+        if u_(i,0) != 0 then (
             for j to numgens target v - 1 do (
-                if v_(j,0) =!= 0 then (
+                if v_(j,0) != 0 then (
                     if products#i#j === false then return false;
                     l = append( l, (u_(i,0))*(v_(j,0))*products#i#j );
                     );
@@ -248,9 +249,10 @@ findFlip = algebra -> (
     n := #algebra.span;
     f := {1, 0, 2};
     if n < 4 then return f;
-    for x in algebra.span_(toList(3..n-1)) do (
+    for i in (3..n-1) do (
+        x :=  algebra.span#i;
         im := sort f_x;
-        f = append(f, position(im, algebra.span));
+        f = append(f, position(algebra.span, y -> y === im) );
         );
     f
     )
@@ -268,7 +270,7 @@ flipVector = (vec, f) -> (
                 res = res + algebra.products#(im#0)#(im#1)*(vec#i)
                 )
             else (
-                algebra.span = append(algebra.span, sort im);
+                algebra.span = append(algebra.span, new MutableList from sort(im));
                 expandAlgebra(algebra);
                 res = res || matrix({{0}});
                 res = res + sub(standardAxialVector(#res - 1, #res - 1),r)*vec#i;
