@@ -79,7 +79,7 @@ fusion = algebra -> (
                         algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), algebra.field);
                         algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), algebra.field);
                         prod.vec = prod.vec || matrix({{0}});
-                        prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat)#k#0;
+                        prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat_(k,0));
                         );
                     if ev === set {} then quotientNullVec(algebra, prod.vec)
                     else (
@@ -96,6 +96,7 @@ fusion = algebra -> (
         for ev in keys algebra.temp do algebra.evecs#ev = groebnerBasis algebra.temp#ev;
         remove(algebra, temp);
         performFlip algebra;
+        -- Implement intersect algorithm?
     )
 
 expandAlgebra = algebra -> (
@@ -120,6 +121,31 @@ expandAlgebra = algebra -> (
             algebra.temp#ev = algebra.temp#ev || matrix( {toList(d:0)});
             );
         );
+    )
+
+findAlgebraProducts = algebra -> (
+    n = #algebra.span;
+    system := new MutableHashTable from {vec => zeroAxialVector(n), mat => zeroAxialVector(n^2), unknowns => {}};
+    u := standardAxialVector(0, n);
+    for ev in algebra.evals do (
+        for i to numgens source algebra.evecs#(set {ev}) - 1 do (
+            v := (algebra.evecs#(set {ev}))_{i};
+            eqn := axialSeparateProduct(u, v, system.unknowns, algebra.products);
+            eqn.vec = eqn.vec + ev*v;
+            system.unknowns = eqn.l;
+            pos := positions(flatten(entries(eqn.mat)), x -> x != 0);
+            if #pos == 1 then (
+                x := system.unknowns#(pos#0);
+                y := sub(1/eqn.mat_(pos#0,0), ring eqn.vec);
+                algebra.products#(x#0)#(x#1) = eqn.vec*y;
+                algebra.products#(x#1)#(x#0) = eqn.vec*y; )
+            else (
+                system.mat = system.mat | eqn.mat;
+                system.vec = system.vec | eqn.vec;
+                );
+            );
+        );
+    system
     )
 
 findFirstEigenvectors = (evals, field) -> (
@@ -208,7 +234,9 @@ reduce = (u, v, k) -> u - v*u^{k}
 
 -- might want to swap lhs and rhs now that we are working with columns
 axialSeparateProduct = (u,  v, unknowns, products) -> (
-    lhs := new MutableList from {};
+    r := ring products#0#0;
+    n := #products;
+    lhs := zeroAxialVector n^2;
     rhs := {};
     for i to numgens target u - 1 do (
         if u_(i,0) != 0 then (
@@ -220,9 +248,9 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
                             unknowns = append(unknowns, sort {i,j});
                             pos = #unknowns - 1;
                             );
-                        lhs#pos = {u_(i,0)*v_(j,0)}
+                        lhs = lhs + sub(standardAxialVector(pos, n^2),r)*(u_(i,0)*v_(j,0));
                         )
-                    else rhs = append( rhs, (u_(i,0))*(v_(j,0))*products#i#j );
+                    else rhs = append( rhs, (u_(i,0)*v_(j,0))*products#i#j );
                     );
                 );
             );
