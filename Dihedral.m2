@@ -10,6 +10,13 @@ JordanTable = n -> hashTable {
     {n,1} => set {n}, {n,0} => set {n}, {n,n} => set {1,0}
 }
 
+MonsterTable = (a,b) -> hashTable {
+    {1,1} => set {1}, {1,0} => set {}, {1,a} => set {a}, {1,b} => set {b},
+    {0,1} => set {}, {0,0} => set {0}, {0,a} => set {a}, {0,b} => set {b},
+    {a,1} => set {a}, {a,0} => set {a}, {a,a} => set {1,0}, {a,b} => set {b},
+    {b,1} => set {b}, {b,0} => set {b}, {b,a} => set {b}, {b,b} => set {1, 0, a}
+}
+
 dihedralAlgebraSetup = method( TypicalValue => AxialAlgebra, Options => { field => QQ, primitive => true } )
 dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     n := #evals;
@@ -53,6 +60,7 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
                 );
             );
         );
+    algebra.polynomials = {};
     performFlip algebra;
     algebra
     )
@@ -145,7 +153,23 @@ findAlgebraProducts = algebra -> (
                 );
             );
         );
+    performFlip algebra;
+    -- TODO implement solve system
     system
+    )
+
+findNullVectors = algebra -> (
+    a := standardAxialVector(0, #algebra.span);
+    for ev in algebra.evals do (
+        for i to numgens source algebra.evecs#(set {ev}) - 1 do(
+            u := algebra.evecs#(set {ev})_{i};
+            n := axialProduct(a, u, algebra.products);
+            if n =!= false then (
+                quotientNullVec(algebra, n - ev*u);
+                );
+            );
+        );
+    performFlip algebra;
     )
 
 findFirstEigenvectors = (evals, field) -> (
@@ -255,7 +279,7 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
                 );
             );
         );
-    new MutableHashTable from {vec => sum(rhs), mat => lhs, l => unknowns }
+    new MutableHashTable from {vec => -sum(rhs), mat => lhs, l => unknowns }
     )
 
 axialProduct = (u, v, products) -> (

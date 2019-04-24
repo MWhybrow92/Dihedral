@@ -4,3 +4,4 @@ tbl = JordanTable 100;
 algebra = dihedralAlgebraSetup(evals, tbl);
 fusion algebra;
 findAlgebraProducts algebra;
+findNullVectors algebra;
