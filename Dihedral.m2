@@ -26,7 +26,7 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     algebra.tbl = tbl;
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
-    algebra.span = {0,1} | apply(toList(1..n-1), x -> new MutableList from {0,x});
+    algebra.span = {0,1} | apply(toList(1..n-1), x -> {0,x});
     -- Add products as list of lists
     algebra.products = new MutableList from {};
     for i to n - 1 do (
@@ -77,8 +77,6 @@ fusion = algebra -> (
                     unknowns := {};
                     prod := axialSeparateProduct(u, v, unknowns, algebra.products);
                     unknowns = prod.l;
-                    print (#unknowns);
-                    if #unknowns > 1 then error ("pause");
                     for k to #unknowns - 1 do (
                         x := unknowns#k;
                         algebra.span = append(algebra.span, x);
@@ -196,6 +194,14 @@ changeRingOfAlgebra = (algebra, r) -> (
     for ev in keys algebra.evecs do algebra.evecs#ev = sub(algebra.evecs#ev, r);
     )
 
+reduceSpanningVec = (vec, k) -> (
+    if member (vec, {0,1}) then return vec;
+    if vec#0 > k and vec#1 > k then return {vec#0 - 1, vec#1 - 1};
+    if vec#0 > k then return {vec#0 - 1, vec#1};
+    if vec#1 > k then return {vec#0, vec#1 -1};
+    vec
+    )
+
 quotientNullVec = (algebra, vec) -> (
     nonzero := positions( flatten(entries(vec)), i -> i != 0);
     if #nonzero == 0 then return;
@@ -227,10 +233,7 @@ quotientNullVec = (algebra, vec) -> (
             quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
             );
         );
-    for i in k+1 .. n-1 do (
-        if algebra.span#i#0 > k then algebra.span#i#0 = algebra.span#i#0 - 1;
-        if algebra.span#i#1 > k then algebra.span#i#1 = algebra.span#i#1 - 1;
-        );
+    algebra.span = apply(algebra.span, x -> reduceSpanningVec(x, k));
     reduction := toList drop(0..n - 1,{k,k});
     algebra.products = drop(algebra.products,{k,k});
     for i to #algebra.products - 1 do (
@@ -309,7 +312,7 @@ findFlip = algebra -> (
     f
     )
 
-flipVector = (vec, f) -> (
+flipVector = (vec, f, algebra) -> (
     r := ring vec;
     vec = apply( entries vec, p -> sub(p#0, {r_0 => r_1, r_1 => r_0}));
     res := sub(zeroAxialVector(#vec), r);
@@ -322,10 +325,13 @@ flipVector = (vec, f) -> (
                 res = res + algebra.products#(im#0)#(im#1)*(vec#i)
                 )
             else (
-                algebra.span = append(algebra.span, new MutableList from sort(im));
+                algebra.span = append(algebra.span, sort(im));
+                n := #algebra.span;
                 expandAlgebra(algebra);
+                algebra.products#(im#0)#(im#1) = sub(standardAxialVector(n-1, n), algebra.field);
+                algebra.products#(im#1)#(im#0) = sub(standardAxialVector(n-1, n), algebra.field);
                 res = res || matrix({{0}});
-                res = res + sub(standardAxialVector(#res - 1, #res - 1),r)*vec#i;
+                res = res + sub(standardAxialVector(n - 1, n),r)*vec#i;
                 );
         )
         else res = res + sub(standardAxialVector(k, #vec),r)*vec#i;
@@ -341,12 +347,14 @@ performFlip = algebra -> (
         for j to n - 1 do (
             im := f_{i,j};
             if not member(null, im) and algebra.products#i#j =!= false then (
-                vec := flipVector(algebra.products#i#j, f);
+                vec := flipVector(algebra.products#i#j, f, algebra);
                 if algebra.products#(im#0)#(im#1) === false then (
                     algebra.products#(im#0)#(im#1) = vec;
                     algebra.products#(im#1)#(im#0) = vec;
                     )
-                else quotientNullVec(algebra, vec-algebra.products#(im#0)#(im#1));
+                else if vec != algebra.products#(im#0)#(im#1) then (
+                    quotientNullVec(algebra, vec-algebra.products#(im#0)#(im#1));
+                    );
                 );
             );
         );
