@@ -89,7 +89,7 @@ fusion = algebra -> (
                         );
                     if ev === set {} then quotientNullVec(algebra, prod.vec)
                     else (
-                        for s in unique values tbl do(
+                        for s in unique values algebra.tbl do(
                             if isSubset(ev, s) then (
                                 algebra.temp#s = algebra.temp#s | prod.vec;
                                 );
@@ -330,11 +330,12 @@ flipVector = (vec, f, algebra) -> (
                 expandAlgebra(algebra);
                 algebra.products#(im#0)#(im#1) = sub(standardAxialVector(n-1, n), algebra.field);
                 algebra.products#(im#1)#(im#0) = sub(standardAxialVector(n-1, n), algebra.field);
+                f = findFlip algebra;
                 res = res || matrix({{0}});
                 res = res + sub(standardAxialVector(n - 1, n),r)*vec#i;
                 );
         )
-        else res = res + sub(standardAxialVector(k, #vec),r)*vec#i;
+        else res = res + sub(standardAxialVector(k, #algebra.span),r)*vec#i;
     );
     res
     )
@@ -347,6 +348,7 @@ performFlip = algebra -> (
         for j to n - 1 do (
             im := f_{i,j};
             if not member(null, im) and algebra.products#i#j =!= false then (
+                f = findFlip algebra;
                 vec := flipVector(algebra.products#i#j, f, algebra);
                 if algebra.products#(im#0)#(im#1) === false then (
                     algebra.products#(im#0)#(im#1) = vec;
@@ -358,4 +360,15 @@ performFlip = algebra -> (
                 );
             );
         );
-    );
+    )
+
+testEvecs = algebra -> (
+    a := sub(standardAxialVector(0, #algebra.span), algebra.field);
+    for ev in algebra.evals do (
+        for i to numgens source algebra.evecs#(set {ev}) - 1 do (
+            u := algebra.evecs#(set {ev})_{i};
+            v := axialProduct(a, u, algebra.products);
+            if v =!= false and v - ev*u != 0 then "evecs error";
+            );
+        );
+    )
