@@ -99,7 +99,7 @@ fusion = algebra -> (
                 );
             );
         );
-        for ev in keys algebra.temp do algebra.evecs#ev = groebnerBasis algebra.temp#ev;
+        for ev in keys algebra.temp do algebra.evecs#ev = mingens(image algebra.temp#ev);
         remove(algebra, temp);
         performFlip algebra;
         -- Implement intersect algorithm?
@@ -157,16 +157,27 @@ findAlgebraProducts = algebra -> (
     )
 
 findNullVectors = algebra -> (
+    N := sub(zeroAxialVector (#algebra.span), algebra.field);
+    -- first intersect distinct eigenspaces
+    for ev0 in keys algebra.evecs do (
+        for ev1 in keys algebra.evecs do (
+            if ev0 =!= ev1 and  ev0 * ev1 === set {} then (
+                za := mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
+                N = N | za;
+                );
+            );
+        );
+    -- next use a*evec = ev*evec to find more null vecs
     a := standardAxialVector(0, #algebra.span);
     for ev in algebra.evals do (
         for i to numgens source algebra.evecs#(set {ev}) - 1 do(
             u := algebra.evecs#(set {ev})_{i};
             n := axialProduct(a, u, algebra.products);
-            if n =!= false then (
-                quotientNullVec(algebra, n - ev*u);
-                );
+            if n =!= false then N = (N | n - ev*u);
             );
         );
+    N = mingens image N;
+    for i to numgens image N - 1 do quotientNullVec(algebra, N_{i});
     performFlip algebra;
     )
 
@@ -246,12 +257,12 @@ quotientNullVec = (algebra, vec) -> (
         );
     for ev in keys algebra.evecs do (
         algebra.evecs#ev = (reduce(algebra.evecs#ev, vec, k))^reduction;
-        algebra.evecs#ev = groebnerBasis algebra.evecs#ev;
+        algebra.evecs#ev = mingens (image algebra.evecs#ev);
         );
     if algebra#?temp then (
         for ev in keys algebra.temp do (
             algebra.temp#ev = (reduce(algebra.temp#ev, vec, k))^reduction;
-            algebra.temp#ev = groebnerBasis algebra.temp#ev;
+            algebra.temp#ev = mingens( image algebra.temp#ev);
             );
         );
     algebra.span = drop(algebra.span, {k,k});
