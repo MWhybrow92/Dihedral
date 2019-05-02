@@ -157,27 +157,32 @@ findAlgebraProducts = algebra -> (
     )
 
 findNullVectors = algebra -> (
-    N := sub(zeroAxialVector (#algebra.span), algebra.field);
+    algebra.nullspace = sub(zeroAxialVector (#algebra.span), algebra.field);
     -- first intersect distinct eigenspaces
+    if false then (
     for ev0 in keys algebra.evecs do (
         for ev1 in keys algebra.evecs do (
             if ev0 =!= ev1 and  ev0 * ev1 === set {} then (
                 za := mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
-                N = N | za;
+                if numgens image za > 0 then error "pause";
+                algebra.nullspace = algebra.nullspace | za;
                 );
             );
         );
+    );
     -- next use a*evec = ev*evec to find more null vecs
     a := standardAxialVector(0, #algebra.span);
     for ev in algebra.evals do (
         for i to numgens source algebra.evecs#(set {ev}) - 1 do(
             u := algebra.evecs#(set {ev})_{i};
             n := axialProduct(a, u, algebra.products);
-            if n =!= false then N = (N | n - ev*u);
+            if n =!= false then algebra.nullspace = (algebra.nullspace | n - ev*u);
             );
         );
-    N = mingens image N;
-    for i to numgens image N - 1 do quotientNullVec(algebra, N_{i});
+    algebra.nullspace = mingens image algebra.nullspace;
+    for i to numgens image algebra.nullspace - 1 do (
+        quotientNullVec(algebra, algebra.nullspace_{i});
+        );
     performFlip algebra;
     )
 
@@ -214,6 +219,7 @@ reduceSpanningVec = (vec, k) -> (
     )
 
 quotientNullVec = (algebra, vec) -> (
+    if vec == 0 then return;
     nonzero := positions( flatten(entries(vec)), i -> i != 0);
     if #nonzero == 0 then return;
     n := #algebra.span;
@@ -265,7 +271,30 @@ quotientNullVec = (algebra, vec) -> (
             algebra.temp#ev = mingens( image algebra.temp#ev);
             );
         );
+    if algebra#?nullspace then (
+        algebra.nullspace = (reduce(algebra.nullspace, vec, k))^reduction;
+        );
     algebra.span = drop(algebra.span, {k,k});
+    )
+
+quotientNullPolynomials = algebra -> (
+    I := ideal algebra.polynomials;
+    for i to #algebra.products - 1 do (
+        for j to #algebra.products - 1 do (
+            algebra.products#i#j = algebra.products#i#j % I;
+            );
+        );
+    for ev in keys algebra.evecs do (
+        algebra.evecs#ev = algebra.evecs#ev % I;
+        );
+    if algebra#?temp then (
+        for ev in keys algebra.temp do (
+            algebra.temp#ev = algebra.temp#ev % I;
+            );
+        );
+    if algebra#?nullspace then (
+        algebra.nullspace = algebra.nullspace % I;
+        );
     )
 
 reduce = (u, v, k) -> u - v*u^{k}
@@ -326,6 +355,9 @@ findFlip = algebra -> (
 flipVector = (vec, f, algebra) -> (
     r := ring vec;
     vec = apply( entries vec, p -> sub(p#0, {r_0 => r_1, r_1 => r_0}));
+    if #algebra.polynomials > 0 then (
+        vec = apply( vec, p -> p % (ideal algebra.polynomials));
+        );
     res := sub(zeroAxialVector(#vec), r);
     for i to #vec - 1 do (
         k := f#i;
@@ -382,4 +414,11 @@ testEvecs = algebra -> (
             if v =!= false and v - ev*u != 0 then "evecs error";
             );
         );
+    )
+
+mainLoop = algebra -> (
+    fusion algebra;
+    findNullVectors algebra;
+    findAlgebraProducts algebra;
+    findNullVectors algebra;
     )
