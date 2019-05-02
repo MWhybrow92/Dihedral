@@ -157,32 +157,30 @@ findAlgebraProducts = algebra -> (
     )
 
 findNullVectors = algebra -> (
-    algebra.nullspace = sub(zeroAxialVector (#algebra.span), algebra.field);
-    -- first intersect distinct eigenspaces
-    if false then (
-    for ev0 in keys algebra.evecs do (
-        for ev1 in keys algebra.evecs do (
-            if ev0 =!= ev1 and  ev0 * ev1 === set {} then (
-                za := mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
-                if numgens image za > 0 then error "pause";
-                algebra.nullspace = algebra.nullspace | za;
-                );
-            );
-        );
-    );
-    -- next use a*evec = ev*evec to find more null vecs
+    -- first use a*evec = ev*evec to find more null vecs
     a := standardAxialVector(0, #algebra.span);
     for ev in algebra.evals do (
         for i to numgens source algebra.evecs#(set {ev}) - 1 do(
             u := algebra.evecs#(set {ev})_{i};
             n := axialProduct(a, u, algebra.products);
-            if n =!= false then algebra.nullspace = (algebra.nullspace | n - ev*u);
+            if n =!= false then quotientNullVec(algebra, n - ev*u);
+            );
+        );
+    -- next intersect distinct eigenspaces
+    algebra.nullspace = sub(zeroAxialVector (#algebra.span), algebra.field);
+    for ev0 in keys algebra.evecs do (
+        for ev1 in keys algebra.evecs do (
+            if ev0 =!= ev1 and  ev0 * ev1 === set {} then (
+                za := mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
+                algebra.nullspace = algebra.nullspace | za;
+                );
             );
         );
     algebra.nullspace = mingens image algebra.nullspace;
     for i to numgens image algebra.nullspace - 1 do (
         quotientNullVec(algebra, algebra.nullspace_{i});
         );
+    quotientNullPolynomials algebra;
     performFlip algebra;
     )
 
@@ -233,9 +231,13 @@ quotientNullVec = (algebra, vec) -> (
         else prod := vec*0;
         )
     else if #nonzero > 1 then (
-        if isPolynomialRing(algebra.field) and #support(entry) > 0 then (
-            error "Leading coefficient of null vector is a polynomial")
-        else prod = standardAxialVector(k,n) - vec*(sub(1/entry, ring(vec)));
+        d := gcd(flatten(entries(vec));
+        -- TODO this value is null and I cannot work out why
+        vec = sub(vec*(1/d), algebra.field));
+        if all(vec, p -> #support(p) > 0 ) then return; -- an all poly vec
+        k = last positions(vec, p -> #support(p) == 0 and p =!= 0);
+        entry = vec_(k,0);
+        prod = standardAxialVector(k,n) - vec*(sub(1/entry, ring(vec)));
         );
     vec = vec*sub(1/entry, ring(vec));
     for i in k+1 .. n-1 do (
@@ -278,6 +280,7 @@ quotientNullVec = (algebra, vec) -> (
     )
 
 quotientNullPolynomials = algebra -> (
+    if #algebra.polynomials == 0 then return;
     I := ideal algebra.polynomials;
     for i to #algebra.products - 1 do (
         for j to #algebra.products - 1 do (
@@ -418,7 +421,6 @@ testEvecs = algebra -> (
 
 mainLoop = algebra -> (
     fusion algebra;
-    findNullVectors algebra;
     findAlgebraProducts algebra;
     findNullVectors algebra;
     )
