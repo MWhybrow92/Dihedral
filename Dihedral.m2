@@ -45,7 +45,7 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     for i to n - 1 do algebra.evecs#(set {evals#i}) = matrix evecs_{i};
     -- If we assume primitivity then change the field to a polynomial ring
     if algebra.primitive = true then (
-        changeRingOfAlgebra(algebra, algebra.field[x,y]);
+        changeRingOfAlgebra(algebra, algebra.field[symbol x, symbol y]);
         vec := algebra.evecs#(set {1}) - x*sub(standardAxialVector(0,n + 1), ring(x));
         quotientNullVec(algebra, vec);
         n = #algebra.span;
@@ -216,12 +216,29 @@ reduceSpanningVec = (vec, k) -> (
     vec
     )
 
+-- ugly but here we go
+
+GCD = (vec, algebra) -> (
+    r := coefficientRing algebra.field;
+    if #vars(r) == 0 then return 1;
+    s := coefficientRing r;
+    coeffs = apply(vec, p -> flatten( entries((coefficients p)#1)));
+    coeffs = apply(coeffs, x -> apply(x, y -> sub(y, r)));
+    denoms = apply(coeffs, x -> apply(x, denominator));
+    d = sub(lcm(flatten denoms), algebra.field);
+    coeffs = flatten(entries((matrix apply(vec, x -> {x}))*d));
+    R = s[ join(gens r, gens algebra.field) ];
+    coeffs = apply(coeffs, x -> sub(x, R));
+    sub(gcd coeffs, r)
+    )
+
+
 quotientNullVec = (algebra, vec) -> (
     if vec == 0 then return;
     vec = entries vec;
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
-    d := gcd(flatten vec);
+    d := GCD(flatten vec, algebra);
     if #support d > 0 then (
         algebra.polynomials = append(algebra.polynomials, d);
         quotientNullPolynomials algebra;
