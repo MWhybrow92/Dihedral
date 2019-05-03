@@ -218,28 +218,27 @@ reduceSpanningVec = (vec, k) -> (
 
 quotientNullVec = (algebra, vec) -> (
     if vec == 0 then return;
-    nonzero := positions( flatten(entries(vec)), i -> i != 0);
+    vec = entries vec;
+    nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
-    n := #algebra.span;
-    k := last nonzero;
-    entry := vec_(k,0);
-    if #nonzero == 1 then (
-        if isPolynomialRing(algebra.field) and #support(entry) > 0 then (
-            algebra.polynomials = append(algebra.polynomials, entry);
-            return;
-            )
-        else prod := vec*0;
-        )
-    else if #nonzero > 1 then (
-        d := gcd(flatten(entries(vec));
-        -- TODO this value is null and I cannot work out why
-        vec = sub(vec*(1/d), algebra.field));
-        if all(vec, p -> #support(p) > 0 ) then return; -- an all poly vec
-        k = last positions(vec, p -> #support(p) == 0 and p =!= 0);
-        entry = vec_(k,0);
-        prod = standardAxialVector(k,n) - vec*(sub(1/entry, ring(vec)));
+    d := gcd(flatten vec);
+    if #support d > 0 then (
+        algebra.polynomials = append(algebra.polynomials, d);
+        quotientNullPolynomials algebra;
+        return;
         );
-    vec = vec*sub(1/entry, ring(vec));
+    vec = vec/d;
+    if all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
+        print vec;
+        return;
+        );
+    k = last select(nonzero, i -> #support vec#i#0 == 0);
+    if k == 0 or k == 1 then error "Is the algebra zero?";
+    vec = sub(matrix vec, algebra.field);
+    entry := vec_(k,0);
+    n := #algebra.span;
+    prod = standardAxialVector(k,n) - vec*(sub(1/entry, algebra.field));
+    vec = vec*sub(1/entry, algebra.field);
     for i in k+1 .. n-1 do (
         x := algebra.span#i;
         if member(k,x) then (
