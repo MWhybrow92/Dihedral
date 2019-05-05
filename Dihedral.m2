@@ -129,9 +129,31 @@ expandAlgebra = algebra -> (
         );
     )
 
+solveSystem = (system, algebra) -> (
+    k := #system.unknowns;
+    mat := system.mat^(toList (0..k-1));
+    mat  = transpose mat;
+    vec := transpose system.vec;
+    sol := transpose (vec//mat);
+    ker := mingens(kernel mat);
+    -- this gives us the solutions that we have actually found
+    -- don't really understand why :/
+    found := toList(0..k);
+    if ker =!= 0 then found = positions(entries ker, x -> all(x, y -> y == 0));
+    for i in found do (
+        x := system.unknowns#i;
+        prod := sol_{i};
+        algebra.products#(x#0)#(x#1) = prod;
+        algebra.products#(x#1)#(x#0) = prod;
+        );
+    )
+
 findAlgebraProducts = algebra -> (
     n = #algebra.span;
-    system := new MutableHashTable from {vec => zeroAxialVector(n), mat => zeroAxialVector(n^2), unknowns => {}};
+    system := new MutableHashTable;
+    system.vec = zeroAxialVector(n);
+    system.mat = zeroAxialVector(n^2);
+    system.unknowns = {};
     u := standardAxialVector(0, n);
     for ev in algebra.evals do (
         for i to numgens source algebra.evecs#(set {ev}) - 1 do (
@@ -139,21 +161,12 @@ findAlgebraProducts = algebra -> (
             eqn := axialSeparateProduct(u, v, system.unknowns, algebra.products);
             eqn.vec = eqn.vec + ev*v;
             system.unknowns = eqn.l;
-            pos := positions(flatten(entries(eqn.mat)), x -> x != 0);
-            if #pos == 1 then (
-                x := system.unknowns#(pos#0);
-                y := sub(1/eqn.mat_(pos#0,0), ring eqn.vec);
-                algebra.products#(x#0)#(x#1) = eqn.vec*y;
-                algebra.products#(x#1)#(x#0) = eqn.vec*y; )
-            else (
-                system.mat = system.mat | eqn.mat;
-                system.vec = system.vec | eqn.vec;
-                );
+            system.mat = system.mat | eqn.mat;
+            system.vec = system.vec | eqn.vec;
             );
         );
+    solveSystem (system, algebra);
     performFlip algebra;
-    -- TODO implement solve system
-    system
     )
 
 findNullVectors = algebra -> (
@@ -217,10 +230,12 @@ reduceSpanningVec = (vec, k) -> (
     )
 
 -- ugly but here we go
+-- this is a hacky fix to get around the fact that M2 can't calculate
+-- gcd's over iterated polynomials
 
 GCD = (vec, algebra) -> (
     r := coefficientRing algebra.field;
-    if #vars(r) == 0 then return 1;
+    if #gens(r) == 0 then return gcd vec;
     s := coefficientRing r;
     coeffs = apply(vec, p -> flatten( entries((coefficients p)#1)));
     coeffs = apply(coeffs, x -> apply(x, y -> sub(y, r)));
@@ -229,7 +244,7 @@ GCD = (vec, algebra) -> (
     coeffs = flatten(entries((matrix apply(vec, x -> {x}))*d));
     R = s[ join(gens r, gens algebra.field) ];
     coeffs = apply(coeffs, x -> sub(x, R));
-    sub(gcd coeffs, r)
+    sub(gcd coeffs, algebra.field)
     )
 
 
@@ -244,7 +259,8 @@ quotientNullVec = (algebra, vec) -> (
         quotientNullPolynomials algebra;
         return;
         );
-    vec = vec/d;
+    d = sub(d, coefficientRing algebra.field);
+    if d != 1 then vec = apply(vec, x -> {x#0*sub(1/d, algebra.field)});
     if all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
         print vec;
         return;
@@ -252,7 +268,7 @@ quotientNullVec = (algebra, vec) -> (
     k = last select(nonzero, i -> #support vec#i#0 == 0);
     if k == 0 or k == 1 then error "Is the algebra zero?";
     vec = sub(matrix vec, algebra.field);
-    entry := vec_(k,0);
+    entry := sub(vec_(k,0), coefficientRing algebra.field);
     n := #algebra.span;
     prod = standardAxialVector(k,n) - vec*(sub(1/entry, algebra.field));
     vec = vec*sub(1/entry, algebra.field);
@@ -435,8 +451,33 @@ testEvecs = algebra -> (
         );
     )
 
+howManyUnknowns = algebra -> (
+    n = #algebra.span;
+    unknowns := {};
+    for i to n - 1 do (
+        for j from i to n - 1 do (
+            if algebra.products#i#j === false then unknowns = unknowns | {{i,j}};
+            );
+        );
+    #unknowns
+    )
+
 mainLoop = algebra -> (
     fusion algebra;
     findAlgebraProducts algebra;
     findNullVectors algebra;
     )
+
+-- formerly in findAlgebraProducts
+
+--pos := positions(flatten(entries(eqn.mat)), x -> x != 0);
+--if #pos == 1 then (
+    --x := system.unknowns#(pos#0);
+    --if #support(eqn.mat_(pos#0,0)) > 0 then error "polynomial coeff";
+    --y := 1/sub(eqn.mat_(pos#0,0), coefficientRing algebra.field);
+    --algebra.products#(x#0)#(x#1) = eqn.vec*y;
+    --algebra.products#(x#1)#(x#0) = eqn.vec*y; )
+--else (
+    --system.mat = system.mat | eqn.mat;
+    --system.vec = system.vec | eqn.vec;
+    --);
