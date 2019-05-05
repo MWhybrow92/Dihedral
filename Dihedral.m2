@@ -65,33 +65,47 @@ dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
     algebra
     )
 
+fusionRule = (set0, set1, tbl) -> (
+    rule := {};
+    for ev0 in toList(set0) do (
+        for ev1 in toList(set1) do (
+            if #tbl#({ev0, ev1}) > 0 then (
+                rule = join(rule, toList tbl#({ev0, ev1}));
+                );
+            );
+        );
+    set rule
+    )
+
 fusion = algebra -> (
     algebra.temp = copy algebra.evecs;
-    for ev0 in algebra.evals do (
-        for ev1 in algebra.evals do (
-            ev := algebra.tbl#({ev0,ev1});
-            for i to numgens source algebra.evecs#(set {ev0}) - 1 do (
-                for j to numgens source algebra.evecs#(set {ev1}) - 1 do (
-                    u := (algebra.evecs#(set {ev0}))_{i};
-                    v := (algebra.evecs#(set {ev1}))_{j};
-                    unknowns := {};
-                    prod := axialSeparateProduct(u, v, unknowns, algebra.products);
-                    unknowns = prod.l;
-                    for k to #unknowns - 1 do (
-                        x := unknowns#k;
-                        algebra.span = append(algebra.span, x);
-                        expandAlgebra algebra;
-                        n := #algebra.span;
-                        algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), algebra.field);
-                        algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), algebra.field);
-                        prod.vec = prod.vec || matrix({{0}});
-                        prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat_(k,0));
-                        );
-                    if ev === set {} then quotientNullVec(algebra, prod.vec)
-                    else (
-                        for s in unique values algebra.tbl do(
-                            if isSubset(ev, s) then (
-                                algebra.temp#s = algebra.temp#s | prod.vec;
+    for set0 in keys algebra.evecs do (
+        for set1 in keys algebra.evecs do (
+            rule := fusionRule(set0, set1, algebra.tbl);
+            if rule =!= set(algebra.evals) then (
+                for i to numgens source algebra.evecs#set0 - 1 do (
+                    for j to numgens source algebra.evecs#set1 - 1 do (
+                        u := (algebra.evecs#set0)_{i};
+                        v := (algebra.evecs#set1)_{j};
+                        unknowns := {};
+                        prod := axialSeparateProduct(u, v, unknowns, algebra.products);
+                        unknowns = prod.l;
+                        for k to #unknowns - 1 do (
+                            x := unknowns#k;
+                            algebra.span = append(algebra.span, x);
+                            expandAlgebra algebra;
+                            n := #algebra.span;
+                            algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), algebra.field);
+                            algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), algebra.field);
+                            prod.vec = prod.vec || matrix({{0}});
+                            prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat_(k,0));
+                            );
+                        if rule === set {} then quotientNullVec(algebra, prod.vec)
+                        else (
+                            for s in unique values algebra.tbl do(
+                                if isSubset(rule, s) then (
+                                    algebra.temp#s = algebra.temp#s | prod.vec;
+                                    );
                                 );
                             );
                         );
@@ -130,6 +144,7 @@ expandAlgebra = algebra -> (
     )
 
 solveSystem = (system, algebra) -> (
+    if system.mat == 0 then return;
     k := #system.unknowns;
     mat := system.mat^(toList (0..k-1));
     mat  = transpose mat;
@@ -424,16 +439,18 @@ performFlip = algebra -> (
     -- might need to be more careful with the indices if a nullspace vec occurs here
     for i to n -1 do (
         for j to n - 1 do (
-            im := f_{i,j};
-            if not member(null, im) and algebra.products#i#j =!= false then (
-                f = findFlip algebra;
-                vec := flipVector(algebra.products#i#j, f, algebra);
-                if algebra.products#(im#0)#(im#1) === false then (
-                    algebra.products#(im#0)#(im#1) = vec;
-                    algebra.products#(im#1)#(im#0) = vec;
-                    )
-                else if vec != algebra.products#(im#0)#(im#1) then (
-                    quotientNullVec(algebra, vec-algebra.products#(im#0)#(im#1));
+            if i < #algebra.products and j < #algebra.products then (
+                im := f_{i,j};
+                if not member(null, im) and algebra.products#i#j =!= false then (
+                    f = findFlip algebra;
+                    vec := flipVector(algebra.products#i#j, f, algebra);
+                    if algebra.products#(im#0)#(im#1) === false then (
+                        algebra.products#(im#0)#(im#1) = vec;
+                        algebra.products#(im#1)#(im#0) = vec;
+                        )
+                    else if vec != algebra.products#(im#0)#(im#1) then (
+                        quotientNullVec(algebra, vec-algebra.products#(im#0)#(im#1));
+                        );
                     );
                 );
             );
