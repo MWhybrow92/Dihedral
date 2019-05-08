@@ -208,6 +208,7 @@ findNullVectors = algebra -> (
     for i to numgens image algebra.nullspace - 1 do (
         quotientNullVec(algebra, algebra.nullspace_{i});
         );
+    remove(algebra, nullspace);
     quotientNullPolynomials algebra;
     performFlip algebra;
     )
@@ -331,7 +332,9 @@ quotientNullPolynomials = algebra -> (
     I := ideal algebra.polynomials;
     for i to #algebra.products - 1 do (
         for j to #algebra.products - 1 do (
-            algebra.products#i#j = algebra.products#i#j % I;
+            if algebra.products#i#j =!= false then (
+                algebra.products#i#j = algebra.products#i#j % I;
+                );
             );
         );
     for ev in keys algebra.evecs do (
@@ -396,8 +399,9 @@ findFlip = algebra -> (
     if n < 4 then return f;
     for i in (3..n-1) do (
         x :=  algebra.span#i;
-        im := sort f_x;
-        f = append(f, position(algebra.span, y -> y === im) );
+        im := f_x;
+        if member(null, im) then f = append(f, null)
+        else f = append(f, position(algebra.span, y -> y === im) );
         );
     f
     )
