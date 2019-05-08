@@ -431,7 +431,9 @@ flipVector = (vec, f, algebra) -> (
         k := f#i;
         if k === null then (
             im := f_(algebra.span#i);
-            if member(null, im) then error "Can't find image of vec under flip";
+            if member(null, im) then return false;
+            -- TODO this means that we cannot find the image of this vector under the flip
+            -- should we add this image to the spanning set and expand the algebra?S
             if algebra.products#(im#0)#(im#1) =!= false then (
                 res = res + algebra.products#(im#0)#(im#1)*(vec#i)
                 )
@@ -462,12 +464,14 @@ performFlip = algebra -> (
                 if not member(null, im) and algebra.products#i#j =!= false then (
                     f = findFlip algebra;
                     vec := flipVector(algebra.products#i#j, f, algebra);
-                    if algebra.products#(im#0)#(im#1) === false then (
-                        algebra.products#(im#0)#(im#1) = vec;
-                        algebra.products#(im#1)#(im#0) = vec;
-                        )
-                    else if vec != algebra.products#(im#0)#(im#1) then (
-                        quotientNullVec(algebra, vec-algebra.products#(im#0)#(im#1));
+                    if vec =!= false then (
+                        if algebra.products#(im#0)#(im#1) === false then (
+                            algebra.products#(im#0)#(im#1) = vec;
+                            algebra.products#(im#1)#(im#0) = vec;
+                            )
+                        else if vec != algebra.products#(im#0)#(im#1) then (
+                            quotientNullVec(algebra, vec-algebra.products#(im#0)#(im#1));
+                            );
                         );
                     );
                 );
