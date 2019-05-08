@@ -271,9 +271,9 @@ GCD = (vec, algebra) -> (
 
 
 quotientNullVec = (algebra, vec) -> (
+    old := #algebra.span;
     if vec == 0 then return;
     vec = entries vec;
-    if vec#0#0 == -80727238769988895623899646435873714509/13353340923855592969031439969763196928000 then error "pause";
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
     d := GCD(flatten vec, algebra);
@@ -288,28 +288,32 @@ quotientNullVec = (algebra, vec) -> (
         print vec;
         return;
         );
-    k = last select(nonzero, i -> #support vec#i#0 == 0);
+    k := last select(nonzero, i -> #support vec#i#0 == 0);
     if k == 0 or k == 1 then error "Is the algebra zero?";
     vec = sub(matrix vec, algebra.field);
     entry := sub(vec_(k,0), coefficientRing algebra.field);
     n := #algebra.span;
-    prod = standardAxialVector(k,n) - vec*(sub(1/entry, algebra.field));
+    prod := standardAxialVector(k,n) - vec*(sub(1/entry, algebra.field));
     vec = vec*sub(1/entry, algebra.field);
     for i in k+1 .. n-1 do (
         if i < #algebra.span then (
             x := algebra.span#i;
             if member(k,x) then (
                 if x#0 == k then u := prod
-                else u = standardAxialVector(0,n);
+                else u = standardAxialVector(x#0,n);
                 if x#1 == k then v := prod
-                else v = standardAxialVector(1,n);
+                else v = standardAxialVector(x#1,n);
                 newProd := axialProduct(u, v, algebra.products);
                 if newProd === false then error "Cannot find product";
                 quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
+                n = #algebra.span;
+                vec = vec^(toList (0..n-1));
+                prod = prod^(toList (0..n-1));
                 );
             );
         );
     algebra.span = apply(algebra.span, x -> reduceSpanningVec(x, k));
+
     reduction := toList drop(0..n - 1,{k,k});
     algebra.products = drop(algebra.products,{k,k});
     for i to #algebra.products - 1 do (
@@ -334,6 +338,7 @@ quotientNullVec = (algebra, vec) -> (
         algebra.nullspace = (reduce(algebra.nullspace, vec, k))^reduction;
         );
     algebra.span = drop(algebra.span, {k,k});
+    print({old, #algebra.span})
     )
 
 quotientNullPolynomials = algebra -> (
