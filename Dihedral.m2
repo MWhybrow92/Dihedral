@@ -168,7 +168,7 @@ solveSystem = (system, algebra) -> (
     )
 
 findAlgebraProducts = algebra -> (
-    n = #algebra.span;
+    n := #algebra.span;
     system := new MutableHashTable;
     system.vec = zeroAxialVector(n);
     system.mat = zeroAxialVector(n^2);
@@ -259,12 +259,12 @@ GCD = (vec, algebra) -> (
     r := coefficientRing algebra.field;
     if #gens(r) == 0 then return gcd vec;
     s := coefficientRing r;
-    coeffs = apply(vec, p -> flatten( entries((coefficients p)#1)));
+    coeffs := apply(vec, p -> flatten( entries((coefficients p)#1)));
     coeffs = apply(coeffs, x -> apply(x, y -> sub(y, r)));
     denoms = apply(coeffs, x -> apply(x, denominator));
-    d = sub(lcm(flatten denoms), algebra.field);
+    d := sub(lcm(flatten denoms), algebra.field);
     coeffs = flatten(entries((matrix apply(vec, x -> {x}))*d));
-    R = s[ join(gens r, gens algebra.field) ];
+    R := s[ join(gens r, gens algebra.field) ];
     coeffs = apply(coeffs, x -> sub(x, R));
     sub(gcd coeffs, algebra.field)
     )
@@ -377,7 +377,7 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
             for j to numgens target v - 1 do (
                 if v_(j,0) != 0 then (
                     if products#i#j === false then (
-                        pos = position( unknowns, x -> x == sort {i,j} );
+                        pos := position( unknowns, x -> x == sort {i,j} );
                         if pos === null then (
                             unknowns = append(unknowns, sort {i,j});
                             pos = #unknowns - 1;
@@ -454,8 +454,8 @@ flipVector = (vec, f, algebra) -> (
     )
 
 performFlip = algebra -> (
-    n = #algebra.span;
-    f = findFlip algebra;
+    n := #algebra.span;
+    f := findFlip algebra;
     -- might need to be more careful with the indices if a nullspace vec occurs here
     for i to n -1 do (
         for j to n - 1 do (
@@ -491,7 +491,7 @@ testEvecs = algebra -> (
     )
 
 howManyUnknowns = algebra -> (
-    n = #algebra.span;
+    n := #algebra.span;
     unknowns := {};
     for i to n - 1 do (
         for j from i to n - 1 do (
