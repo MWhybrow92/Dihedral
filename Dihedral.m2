@@ -77,7 +77,7 @@ fusionRule = (set0, set1, tbl) -> (
     set rule
     )
 
-fusion = algebra -> (
+fusion = {expand => true} >> opts -> algebra -> (
     algebra.temp = copy algebra.evecs;
     for set0 in keys algebra.evecs do (
         for set1 in keys algebra.evecs do (
@@ -90,21 +90,25 @@ fusion = algebra -> (
                         unknowns := {};
                         prod := axialSeparateProduct(u, v, unknowns, algebra.products);
                         unknowns = prod.l;
-                        for k to #unknowns - 1 do (
-                            x := unknowns#k;
-                            algebra.span = append(algebra.span, x);
-                            expandAlgebra algebra;
-                            n := #algebra.span;
-                            algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), algebra.field);
-                            algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), algebra.field);
-                            prod.vec = prod.vec || matrix({{0}});
-                            prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat_(k,0));
+                        if opts.expand == true then (
+                            for k to #unknowns - 1 do (
+                                x := unknowns#k;
+                                algebra.span = append(algebra.span, x);
+                                expandAlgebra algebra;
+                                n := #algebra.span;
+                                algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), algebra.field);
+                                algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), algebra.field);
+                                prod.vec = prod.vec || matrix({{0}});
+                                prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat_(k,0));
+                                );
                             );
-                        if rule === set {} then quotientNullVec(algebra, prod.vec)
-                        else (
-                            for s in unique values algebra.tbl do(
-                                if isSubset(rule, s) then (
-                                    algebra.temp#s = algebra.temp#s | prod.vec;
+                        if opts.expand == true or all(entries prod.mat, x -> x#0 == 0) then (
+                            if rule === set {} then quotientNullVec(algebra, prod.vec)
+                            else (
+                                for s in unique values algebra.tbl do(
+                                    if isSubset(rule, s) then (
+                                        algebra.temp#s = algebra.temp#s | prod.vec;
+                                        );
                                     );
                                 );
                             );
@@ -188,10 +192,12 @@ findNullVectors = algebra -> (
     -- first use a*evec = ev*evec to find more null vecs
     a := standardAxialVector(0, #algebra.span);
     for ev in algebra.evals do (
-        for i to numgens source algebra.evecs#(set {ev}) - 1 do(
-            u := algebra.evecs#(set {ev})_{i};
-            n := axialProduct(a, u, algebra.products);
-            if n =!= false then quotientNullVec(algebra, n - ev*u);
+        for i to numgens source algebra.evecs#(set {ev}) - 1 do (
+            if i < numgens source algebra.evecs#(set {ev}) then (
+                u := algebra.evecs#(set {ev})_{i};
+                n := axialProduct(a, u, algebra.products);
+                if n =!= false then quotientNullVec(algebra, n - ev*u);
+                );
             );
         );
     -- next intersect distinct eigenspaces
@@ -484,9 +490,12 @@ howManyUnknowns = algebra -> (
     )
 
 mainLoop = algebra -> (
-    fusion algebra;
-    findAlgebraProducts algebra;
-    findNullVectors algebra;
+    n := howManyUnknowns algebra;
+    while true do (
+        findAlgebraProducts algebra;
+        findNullVectors algebra;
+        if howManyUnknowns algebra = n then return;
+        );
     )
 
 -- formerly in findAlgebraProducts
