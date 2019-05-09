@@ -163,6 +163,24 @@ solveSystem = (system, algebra) -> (
         );
     )
 
+findNewEigenvectors = algebra -> (
+    a := sub(standardAxialVector(0, #algebra.span), algebra.field);
+    for s in keys algebra.evecs do (
+        for i to numgens source algebra.evecs#s - 1 do (
+            u := algebra.evecs#s_{i};
+            prod := axialProduct(a, u, algebra.products);
+            if #s == 1 then quotientNullVec(prod - u*(toList set)#0, algebra)
+            else(
+                for ev in toList s do (
+                    d := s - set {ev};
+                    algebra.evecs#d = algebra.evecs#d | (prod - ev*u);
+                    );
+                );
+            );
+        );
+    for s in keys algebra.evecs do algebra.evecs#s = mingens algebra.evecs#s
+    )
+
 findAlgebraProducts = algebra -> (
     n := #algebra.span;
     system := new MutableHashTable;
@@ -501,7 +519,7 @@ howManyUnknowns = algebra -> (
 mainLoop = algebra -> (
     while true do (
         n := howManyUnknowns algebra;
-        findAlgebraProducts algebra;
+        findNewEigenvectors;
         findNullVectors algebra;
         if howManyUnknowns algebra == n then return;
         );
