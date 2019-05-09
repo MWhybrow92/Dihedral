@@ -143,78 +143,27 @@ expandAlgebra = algebra -> (
         );
     )
 
-solveSystem = (system, algebra) -> (
-    if system.mat == 0 then return;
-    k := #system.unknowns;
-    mat := system.mat^(toList (0..k-1));
-    mat  = transpose mat;
-    vec := transpose system.vec;
-    sol := transpose (vec//mat);
-    ker := mingens(kernel mat);
-    -- this gives us the solutions that we have actually found
-    -- don't really understand why :/
-    found := toList(0..k);
-    if ker =!= 0 then found = positions(entries ker, x -> all(x, y -> y == 0));
-    for i in found do (
-        x := system.unknowns#i;
-        prod := sol_{i};
-        algebra.products#(x#0)#(x#1) = prod;
-        algebra.products#(x#1)#(x#0) = prod;
-        );
-    )
-
 findNewEigenvectors = algebra -> (
     a := sub(standardAxialVector(0, #algebra.span), algebra.field);
     for s in keys algebra.evecs do (
         for i to numgens source algebra.evecs#s - 1 do (
             u := algebra.evecs#s_{i};
             prod := axialProduct(a, u, algebra.products);
-            if #s == 1 then quotientNullVec(prod - u*(toList set)#0, algebra)
-            else(
-                for ev in toList s do (
-                    d := s - set {ev};
-                    algebra.evecs#d = algebra.evecs#d | (prod - ev*u);
+            if prod =!= false then
+                if #s == 1 then quotientNullVec(prod - u*(toList set)#0, algebra)
+                else (
+                    for ev in toList s do (
+                        d := s - set {ev};
+                        algebra.evecs#d = algebra.evecs#d | (prod - ev*u);
+                        );
                     );
                 );
             );
-        );
     for s in keys algebra.evecs do algebra.evecs#s = mingens algebra.evecs#s
     )
 
-findAlgebraProducts = algebra -> (
-    n := #algebra.span;
-    system := new MutableHashTable;
-    system.vec = zeroAxialVector(n);
-    system.mat = zeroAxialVector(n^2);
-    system.unknowns = {};
-    u := standardAxialVector(0, n);
-    for ev in algebra.evals do (
-        for i to numgens source algebra.evecs#(set {ev}) - 1 do (
-            v := (algebra.evecs#(set {ev}))_{i};
-            eqn := axialSeparateProduct(u, v, system.unknowns, algebra.products);
-            eqn.vec = eqn.vec + ev*v;
-            system.unknowns = eqn.l;
-            system.mat = system.mat | eqn.mat;
-            system.vec = system.vec | eqn.vec;
-            );
-        );
-    solveSystem (system, algebra);
-    performFlip algebra;
-    )
-
 findNullVectors = algebra -> (
-    -- first use a*evec = ev*evec to find more null vecs
-    a := standardAxialVector(0, #algebra.span);
-    for ev in algebra.evals do (
-        for i to numgens source algebra.evecs#(set {ev}) - 1 do (
-            if i < numgens source algebra.evecs#(set {ev}) then (
-                u := algebra.evecs#(set {ev})_{i};
-                n := axialProduct(a, u, algebra.products);
-                if n =!= false then quotientNullVec(algebra, n - ev*u);
-                );
-            );
-        );
-    -- next intersect distinct eigenspaces
+    -- intersect distinct eigenspaces
     algebra.nullspace = sub(zeroAxialVector (#algebra.span), algebra.field);
     for ev0 in keys algebra.evecs do (
         for ev1 in keys algebra.evecs do (
