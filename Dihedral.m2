@@ -1,6 +1,3 @@
-AxialAlgebra = new Type of MutableHashTable
-AxialVector  = new Type of MutableList
-
 zeroAxialVector = (n) -> transpose matrix { toList(n:0) }
 standardAxialVector = (i, n) -> transpose matrix { toList( splice( (i:0, 1, n-i-1:0) ) ) }
 
@@ -17,8 +14,7 @@ MonsterTable = (a,b) -> hashTable {
     {b,1} => set {b}, {b,0} => set {b}, {b,a} => set {b}, {b,b} => set {1, 0, a}
 }
 
-dihedralAlgebraSetup = method( TypicalValue => AxialAlgebra, Options => { field => QQ, primitive => true } )
-dihedralAlgebraSetup(List, HashTable ) := opts -> (evals, tbl) -> (
+dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl) -> (
     n := #evals;
     -- Set up algebra hash table
     algebra := new MutableHashTable;
@@ -289,6 +285,7 @@ quotientNullVec = (algebra, vec) -> (
         return;
         );
     k := last select(nonzero, i -> #support vec#i#0 == 0);
+    print k;
     if k == 0 or k == 1 then error "Is the algebra zero?";
     vec = sub(matrix vec, algebra.field);
     entry := sub(vec_(k,0), coefficientRing algebra.field);
@@ -422,12 +419,12 @@ findFlip = algebra -> (
 
 flipVector = (vec, f, algebra) -> (
     r := ring vec;
-    vec = apply( entries vec, p -> sub(p#0, {r_0 => r_1, r_1 => r_0}));
+    v := apply( entries vec, p -> sub(p#0, {r_0 => r_1, r_1 => r_0}));
     if #algebra.polynomials > 0 then (
-        vec = apply( vec, p -> p % (ideal algebra.polynomials));
+        v = apply( v, p -> p % (ideal algebra.polynomials));
         );
-    res := sub(zeroAxialVector(#vec), r);
-    for i to #vec - 1 do (
+    res := sub(zeroAxialVector(#v), r);
+    for i to #v - 1 do (
         k := f#i;
         if k === null then (
             im := f_(algebra.span#i);
@@ -435,7 +432,7 @@ flipVector = (vec, f, algebra) -> (
             -- TODO this means that we cannot find the image of this vector under the flip
             -- should we add this image to the spanning set and expand the algebra?S
             if algebra.products#(im#0)#(im#1) =!= false then (
-                res = res + algebra.products#(im#0)#(im#1)*(vec#i)
+                res = res + algebra.products#(im#0)#(im#1)*(v#i)
                 )
             else (
                 algebra.span = append(algebra.span, sort(im));
@@ -445,10 +442,10 @@ flipVector = (vec, f, algebra) -> (
                 algebra.products#(im#1)#(im#0) = sub(standardAxialVector(n-1, n), algebra.field);
                 f = findFlip algebra;
                 res = res || matrix({{0}});
-                res = res + sub(standardAxialVector(n - 1, n),r)*vec#i;
+                res = res + sub(standardAxialVector(n - 1, n),r)*v#i;
                 );
         )
-        else res = res + sub(standardAxialVector(k, #algebra.span),r)*vec#i;
+        else res = res + sub(standardAxialVector(k, #algebra.span),r)*v#i;
     );
     res
     )
