@@ -93,6 +93,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                             else (
                                 unknowns := {};
                                 prod = axialSeparateProduct(u, v, unknowns, algebra.products);
+                                unknowns = prod.l;
                                 for k to #unknowns - 1 do (
                                     x := unknowns#k;
                                     algebra.span = append(algebra.span, x);
@@ -106,7 +107,6 @@ fusion = {expand => true} >> opts -> algebra -> (
                                 prod = prod.vec;
                                 );
                             if prod =!= false then (
-                                print prod;
                                 if rule === set {} then quotientNullVec(algebra, prod)
                                 else (
                                     for s in unique values algebra.tbl do(
