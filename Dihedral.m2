@@ -181,17 +181,20 @@ findNullVectors = algebra -> (
         for j in (i + 1 .. n - 1) do (
             ev1 := (keys algebra.evecs)#j;
             if ev0 * ev1 === set {} then (
-                za := mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
-                test = append(test, numgens image za);
-                algebra.nullspace = algebra.nullspace | za;
+                algebra.nullspace = mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
+                test = append(test, numgens image algebra.nullspace);
+                for i in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
+                    quotientNullVec(algebra, algebra.nullspace_{i});
+                    );
                 );
             );
         );
-    algebra.nullspace = mingens image algebra.nullspace;
-    if numgens image algebra.nullspace > 0 then print test;
-    for i in reverse toList(0..numgens image algebra.nullspace - 1) do (
-        quotientNullVec(algebra, algebra.nullspace_{i});
-        );
+    if sum test > 0 then print test;
+    --algebra.nullspace = mingens image algebra.nullspace;
+    --if numgens image algebra.nullspace > 0 then print test;
+    -- for i in reverse toList(0..numgens image algebra.nullspace - 1) do (
+    --    quotientNullVec(algebra, algebra.nullspace_{i});
+    --    );
     -- while true do ( -- quite ugly
     --    k := findNullIndex algebra.nullspace;
     --    if k === false then break;
