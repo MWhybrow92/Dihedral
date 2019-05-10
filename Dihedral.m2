@@ -180,12 +180,29 @@ findNullVectors = algebra -> (
             );
         );
     algebra.nullspace = mingens image algebra.nullspace;
-    for i to numgens image algebra.nullspace - 1 do (
-        quotientNullVec(algebra, algebra.nullspace_{i});
+    --for i in reverse toList(0..numgens image algebra.nullspace - 1) do (
+    --    quotientNullVec(algebra, algebra.nullspace_{i});
+    --    );
+    while true do ( -- quite ugly
+        k := findNullIndex algebra.nullspace;
+        if k === false then break;
+        i := quotientNullVec(algebra, algebra.nullspace_{k});
+        if i === false then (
+            algebra.nullspace = algebra.nullspace_(toList( drop(0..numgens image algebra.nullspace - 1, {k,k})));
+            );
         );
     remove(algebra, nullspace);
     quotientNullPolynomials algebra;
     performFlip algebra;
+    )
+
+findNullIndex = mat -> (
+    n := numgens image mat;
+    if n == 0 then return false;
+    ind := apply( toList (0..n-1), i -> positions( entries mat_{i}, x -> x#0 != 0 ) );
+    ind = apply( ind, x -> if x == {} then return 0 else return last x);
+    if max ind == 0 then return false;
+    return position( ind, i -> i == max ind );
     )
 
 findFirstEigenvectors = (evals, field) -> (
@@ -256,7 +273,7 @@ quotientNullVec = (algebra, vec) -> (
     if d != 1 then vec = apply(vec, x -> {x#0*sub(1/d, algebra.field)});
     if all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
         print vec;
-        return;
+        return false;
         );
     k := last select(nonzero, i -> #support vec#i#0 == 0);
     print k;
