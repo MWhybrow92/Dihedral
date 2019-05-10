@@ -334,7 +334,7 @@ reduce = (u, v, k) -> u - v*u^{k}
 axialSeparateProduct = (u,  v, unknowns, products) -> (
     r := ring products#0#0;
     n := #products;
-    lhs := zeroAxialVector n^2;
+    lhs := new MutableList from (n^2:0);
     rhs := {};
     for i to numgens target u - 1 do (
         if u_(i,0) != 0 then (
@@ -346,13 +346,14 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
                             unknowns = append(unknowns, sort {i,j});
                             pos = #unknowns - 1;
                             );
-                        lhs = lhs + sub(standardAxialVector(pos, n^2),r)*(u_(i,0)*v_(j,0));
+                        lhs#pos = lhs#pos + u_(i,0)*v_(j,0);
                         )
                     else rhs = append( rhs, (u_(i,0)*v_(j,0))*products#i#j );
                     );
                 );
             );
         );
+    lhs = matrix(algebra.field, toList apply(lhs, x -> {x}));
     new MutableHashTable from {vec => -sum(rhs), mat => lhs, l => unknowns }
     )
 
