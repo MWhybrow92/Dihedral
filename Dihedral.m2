@@ -34,10 +34,10 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
     for i in 1..n-1 do algebra.products#i#0 = standardAxialVector(i + 1, n + 1);
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
-    --for ev in delete( set({}), unique(values(tbl))) do (
-    --algebra.evecs#ev = zeroAxialVector(n + 1);
-    for ev in apply(subsets evals, set) do (
-        if #ev =!= 0 and #ev =!= n then algebra.evecs#ev = zeroAxialVector(n + 1);
+    for ev in delete( set({}), unique(values(tbl))) do (
+        algebra.evecs#ev = zeroAxialVector(n + 1);
+    --for ev in apply(subsets evals, set) do (
+    --    if #ev =!= 0 and #ev =!= n then algebra.evecs#ev = zeroAxialVector(n + 1);
         );
     evecs := findFirstEigenvectors(evals, algebra.field);
     for i to n - 1 do algebra.evecs#(set {evals#i}) = matrix evecs_{i};
@@ -180,17 +180,17 @@ findNullVectors = algebra -> (
             );
         );
     algebra.nullspace = mingens image algebra.nullspace;
-    --for i in reverse toList(0..numgens image algebra.nullspace - 1) do (
-    --    quotientNullVec(algebra, algebra.nullspace_{i});
-    --    );
-    while true do ( -- quite ugly
-        k := findNullIndex algebra.nullspace;
-        if k === false then break;
-        i := quotientNullVec(algebra, algebra.nullspace_{k});
-        if i === false then (
-            algebra.nullspace = algebra.nullspace_(toList( drop(0..numgens image algebra.nullspace - 1, {k,k})));
-            );
+    for i in reverse toList(0..numgens image algebra.nullspace - 1) do (
+        quotientNullVec(algebra, algebra.nullspace_{i});
         );
+    -- while true do ( -- quite ugly
+    --    k := findNullIndex algebra.nullspace;
+    --    if k === false then break;
+    --    i := quotientNullVec(algebra, algebra.nullspace_{k});
+    --    if i === false then (
+    --        algebra.nullspace = algebra.nullspace_(toList( drop(0..numgens image algebra.nullspace - 1, {k,k})));
+    --        );
+    --    );
     remove(algebra, nullspace);
     quotientNullPolynomials algebra;
     performFlip algebra;
@@ -272,7 +272,7 @@ quotientNullVec = (algebra, vec) -> (
     d = sub(d, coefficientRing algebra.field);
     if d != 1 then vec = apply(vec, x -> {x#0*sub(1/d, algebra.field)});
     if all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
-        print vec;
+        print "All poly mat";
         return false;
         );
     k := last select(nonzero, i -> #support vec#i#0 == 0);
@@ -292,7 +292,8 @@ quotientNullVec = (algebra, vec) -> (
                 if x#1 == k then v := prod
                 else v = standardAxialVector(x#1,n);
                 newProd := axialProduct(u, v, algebra.products);
-                if newProd === false then error "Cannot find product";
+                --if newProd === false then error "Cannot find product";
+                if newProd === false then print("Cannot quotient vector ", k); return;
                 quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
                 n = #algebra.span;
                 vec = vec^(toList (0..n-1));
