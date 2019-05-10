@@ -77,8 +77,11 @@ fusionRule = (set0, set1, tbl) -> (
 
 fusion = {expand => true} >> opts -> algebra -> (
     algebra.temp = copy algebra.evecs;
-    for set0 in keys algebra.evecs do (
-        for set1 in keys algebra.evecs do (
+    n := #(keys algebra.evecs);
+    for i to n - 1  do (
+        set0 := (keys algebra.evecs)#i;
+        for j in (i .. n - 1) do (
+            set1 := (keys algebra.evecs)#j;
             rule := fusionRule(set0, set1, algebra.tbl);
             if rule =!= set(algebra.evals) then (
                 for i to numgens source algebra.evecs#set0 - 1 do (
