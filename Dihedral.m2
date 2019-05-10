@@ -89,10 +89,10 @@ fusion = {expand => true} >> opts -> algebra -> (
                         if i < numgens source algebra.evecs#set0 and j < numgens source algebra.evecs#set1 then (
                             u := (algebra.evecs#set0)_{i};
                             v := (algebra.evecs#set1)_{j};
-                            unknowns := {};
-                            prod := axialSeparateProduct(u, v, unknowns, algebra.products);
-                            unknowns = prod.l;
-                            if opts.expand == true then (
+                            if opts.expand == false then prod := axialProduct(u, v, algebra.products)
+                            else (
+                                unknowns := {};
+                                prod = axialSeparateProduct(u, v, unknowns, algebra.products);
                                 for k to #unknowns - 1 do (
                                     x := unknowns#k;
                                     algebra.span = append(algebra.span, x);
@@ -103,13 +103,15 @@ fusion = {expand => true} >> opts -> algebra -> (
                                     prod.vec = prod.vec || matrix({{0}});
                                     prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat_(k,0));
                                     );
+                                prod = prod.vec;
                                 );
-                            if opts.expand == true or all(entries prod.mat, x -> x#0 == 0) then (
-                                if rule === set {} then quotientNullVec(algebra, prod.vec)
+                            if prod =!= false then (
+                                print prod;
+                                if rule === set {} then quotientNullVec(algebra, prod)
                                 else (
                                     for s in unique values algebra.tbl do(
                                         if isSubset(rule, s) then (
-                                            algebra.temp#s = algebra.temp#s | prod.vec;
+                                            algebra.temp#s = algebra.temp#s | prod;
                                             );
                                         );
                                     );
@@ -173,7 +175,6 @@ findNewEigenvectors = algebra -> (
 
 findNullVectors = algebra -> (
     -- intersect distinct eigenspaces
-    algebra.nullspace = sub(zeroAxialVector (#algebra.span), algebra.field);
     test := {};
     n := #(keys algebra.evecs);
     for i to n - 1 do (
