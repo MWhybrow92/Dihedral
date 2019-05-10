@@ -81,29 +81,31 @@ fusion = {expand => true} >> opts -> algebra -> (
             if rule =!= set(algebra.evals) then (
                 for i to numgens source algebra.evecs#set0 - 1 do (
                     for j to numgens source algebra.evecs#set1 - 1 do (
-                        u := (algebra.evecs#set0)_{i};
-                        v := (algebra.evecs#set1)_{j};
-                        unknowns := {};
-                        prod := axialSeparateProduct(u, v, unknowns, algebra.products);
-                        unknowns = prod.l;
-                        if opts.expand == true then (
-                            for k to #unknowns - 1 do (
-                                x := unknowns#k;
-                                algebra.span = append(algebra.span, x);
-                                expandAlgebra algebra;
-                                n := #algebra.span;
-                                algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), algebra.field);
-                                algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), algebra.field);
-                                prod.vec = prod.vec || matrix({{0}});
-                                prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat_(k,0));
+                        if i < numgens source algebra.evecs#set0 and j < numgens source algebra.evecs#set1 then (
+                            u := (algebra.evecs#set0)_{i};
+                            v := (algebra.evecs#set1)_{j};
+                            unknowns := {};
+                            prod := axialSeparateProduct(u, v, unknowns, algebra.products);
+                            unknowns = prod.l;
+                            if opts.expand == true then (
+                                for k to #unknowns - 1 do (
+                                    x := unknowns#k;
+                                    algebra.span = append(algebra.span, x);
+                                    expandAlgebra algebra;
+                                    n := #algebra.span;
+                                    algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), algebra.field);
+                                    algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), algebra.field);
+                                    prod.vec = prod.vec || matrix({{0}});
+                                    prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat_(k,0));
+                                    );
                                 );
-                            );
-                        if opts.expand == true or all(entries prod.mat, x -> x#0 == 0) then (
-                            if rule === set {} then quotientNullVec(algebra, prod.vec)
-                            else (
-                                for s in unique values algebra.tbl do(
-                                    if isSubset(rule, s) then (
-                                        algebra.temp#s = algebra.temp#s | prod.vec;
+                            if opts.expand == true or all(entries prod.mat, x -> x#0 == 0) then (
+                                if rule === set {} then quotientNullVec(algebra, prod.vec)
+                                else (
+                                    for s in unique values algebra.tbl do(
+                                        if isSubset(rule, s) then (
+                                            algebra.temp#s = algebra.temp#s | prod.vec;
+                                            );
                                         );
                                     );
                                 );
@@ -147,19 +149,21 @@ findNewEigenvectors = algebra -> (
     a := sub(standardAxialVector(0, #algebra.span), algebra.field);
     for s in keys algebra.evecs do (
         for i to numgens source algebra.evecs#s - 1 do (
-            u := algebra.evecs#s_{i};
-            prod := axialProduct(a, u, algebra.products);
-            if prod =!= false then
-                if #s == 1 then quotientNullVec(prod - u*(toList set)#0, algebra)
-                else (
-                    for ev in toList s do (
-                        d := s - set {ev};
-                        algebra.evecs#d = algebra.evecs#d | (prod - ev*u);
+            if i < numgens source algebra.evecs#s then (
+                u := algebra.evecs#s_{i};
+                prod := axialProduct(a, u, algebra.products);
+                if prod =!= false then
+                    if #s == 1 then quotientNullVec(algebra, prod - u*(toList s)#0)
+                    else (
+                        for ev in toList s do (
+                            d := s - set {ev};
+                            if algebra.evecs#?d then algebra.evecs#d = algebra.evecs#d | (prod - ev*u); -- maybe want to expand evecs to power set of evals
+                            );
                         );
                     );
                 );
             );
-    for s in keys algebra.evecs do algebra.evecs#s = mingens algebra.evecs#s
+    for s in keys algebra.evecs do algebra.evecs#s = mingens image algebra.evecs#s
     )
 
 findNullVectors = algebra -> (
@@ -240,6 +244,7 @@ quotientNullVec = (algebra, vec) -> (
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
     d := GCD(flatten vec, algebra);
+    if #support d == 1 then error "polynomial";
     if #support d > 0 then (
         algebra.polynomials = append(algebra.polynomials, d);
         quotientNullPolynomials algebra;
@@ -469,7 +474,7 @@ howManyUnknowns = algebra -> (
 mainLoop = algebra -> (
     while true do (
         n := howManyUnknowns algebra;
-        findNewEigenvectors;
+        findNewEigenvectors algebra;
         findNullVectors algebra;
         if howManyUnknowns algebra == n then return;
         );
