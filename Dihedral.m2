@@ -171,15 +171,21 @@ findNewEigenvectors = algebra -> (
 findNullVectors = algebra -> (
     -- intersect distinct eigenspaces
     algebra.nullspace = sub(zeroAxialVector (#algebra.span), algebra.field);
-    for ev0 in keys algebra.evecs do (
-        for ev1 in keys algebra.evecs do (
-            if ev0 =!= ev1 and  ev0 * ev1 === set {} then (
+    test := {};
+    n := #(keys algebra.evecs);
+    for i to n - 1 do (
+        ev0 := (keys algebra.evecs)#i;
+        for j in (i + 1 .. n - 1) do (
+            ev1 := (keys algebra.evecs)#j;
+            if ev0 * ev1 === set {} then (
                 za := mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
+                test = append(test, numgens image za);
                 algebra.nullspace = algebra.nullspace | za;
                 );
             );
         );
     algebra.nullspace = mingens image algebra.nullspace;
+    if numgens image algebra.nullspace > 0 then print test;
     for i in reverse toList(0..numgens image algebra.nullspace - 1) do (
         quotientNullVec(algebra, algebra.nullspace_{i});
         );
