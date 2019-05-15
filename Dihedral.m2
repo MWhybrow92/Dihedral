@@ -197,9 +197,8 @@ quotientNullPolynomials = algebra -> (
             algebra.temp#ev = algebra.temp#ev % I;
             );
         );
-    if algebra#?nullspace then (
-        algebra.nullspace = algebra.nullspace % I;
-        );
+    if algebra#?nullspace then algebra.nullspace = algebra.nullspace % I;
+    algebra.allpolynullvecs = algebra.allpolynullvecs % I;
     )
 
 findNullVectors = algebra -> (
@@ -221,7 +220,7 @@ findNullVectors = algebra -> (
     quotientNullPolynomials algebra;
     performFlip algebra;
     )
-    
+
 findFirstEigenvectors = (evals, field) -> (
     n := #evals;
     mat := toList apply( 0..n-1, i -> toList apply( 0..n-1, j -> (evals#i)^j ));
@@ -285,9 +284,12 @@ quotientNullspace = (algebra, mat) -> (
             );
         );
     algebra.nullspace = mingens image algebra.nullspace;
-    for i in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
-        quotientNullVec(algebra, algebra.nullspace_{i});
+    if numgens image mat > 1 then print (numgens image mat, numgens image algebra.nullspace);
+    if numgens image algebra.nullspace == 46 then error "pause";
+    for j in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
+        quotientNullVec(algebra, algebra.nullspace_{j});
         );
+    remove (algebra, nullspace);
     )
 
 quotientNullVec = (algebra, vec) -> (
@@ -370,7 +372,7 @@ quotientAllPolyNullVecs = algebra -> (
     for i in reverse toList(0..n - 1) do (
         vec := flatten entries algebra.allpolynullvecs_{i};
         if any(vec, x -> x !=0 and #support x == 0 ) then (
-            quotientNullspace (algebra, algebra.allpolynullvecs_{i});
+            quotientNullVec (algebra, algebra.allpolynullvecs_{i});
             );
         );
     )
