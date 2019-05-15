@@ -221,16 +221,7 @@ findNullVectors = algebra -> (
     quotientNullPolynomials algebra;
     performFlip algebra;
     )
-
-findNullIndex = mat -> (
-    n := numgens image mat;
-    if n == 0 then return false;
-    ind := apply( toList (0..n-1), i -> positions( entries mat_{i}, x -> x#0 != 0 ) );
-    ind = apply( ind, x -> if x == {} then return 0 else return last x);
-    if max ind == 0 then return false;
-    return position( ind, i -> i == max ind );
-    )
-
+    
 findFirstEigenvectors = (evals, field) -> (
     n := #evals;
     mat := toList apply( 0..n-1, i -> toList apply( 0..n-1, j -> (evals#i)^j ));
