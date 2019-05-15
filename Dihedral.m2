@@ -22,12 +22,14 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
     algebra.tbl = tbl;
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
+    algebra.polynomials = {};
+    algebra.allpolynullvecs = sub( zeroAxialVector (n + 1), algebra.field );
     algebra.span = {0,1} | apply(toList(1..n-1), x -> {0,x});
     -- Add products as list of lists
     algebra.products = new MutableList from {};
-    for i to n - 1 do (
+    for i to n do (
         algebra.products#i = new MutableList from {};
-        for j to n - 1 do algebra.products#i#j = false;
+        for j to n do algebra.products#i#j = false;
         );
     for i to 1 do algebra.products#i#i = standardAxialVector(i, n + 1);
     for i in 1..n-1 do algebra.products#0#i = standardAxialVector(i + 1, n + 1);
@@ -42,14 +44,14 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
     evecs := findFirstEigenvectors(evals, algebra.field);
     for i to n - 1 do algebra.evecs#(set {evals#i}) = matrix evecs_{i};
     -- If we assume primitivity then change the field to a polynomial ring
-    (if algebra.primitive = true then (
+    if algebra.primitive = true then (
         changeRingOfAlgebra(algebra, algebra.field[symbol x, symbol y]);
         vec := algebra.evecs#(set {1}) - x*sub(standardAxialVector(0,n + 1), ring(x));
-        quotientNullVec(algebra, vec);
+        quotientNullspace (algebra, vec);
         n = #algebra.span;
         algebra.evecs#(set {1}) = sub(standardAxialVector(0, n), algebra.field);
         )
-    else algebra.evecs#(set {1}) = algebra.evecs#(set {1})|standardAxialVector(0, n + 1));
+    else algebra.evecs#(set {1}) = algebra.evecs#(set {1})|standardAxialVector(0, n + 1);
     for s in unique(values(tbl)) do (
         if #(toList s) > 1 then (
             for ev in (toList s) do (
@@ -58,8 +60,6 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
                 );
             );
         );
-    algebra.polynomials = {};
-    algebra.allpolynullvecs = sub( zeroAxialVector n, algebra.field );
     performFlip algebra;
     algebra
     )
