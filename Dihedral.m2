@@ -42,14 +42,14 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
     evecs := findFirstEigenvectors(evals, algebra.field);
     for i to n - 1 do algebra.evecs#(set {evals#i}) = matrix evecs_{i};
     -- If we assume primitivity then change the field to a polynomial ring
-    if algebra.primitive = true then (
+    (if algebra.primitive = true then (
         changeRingOfAlgebra(algebra, algebra.field[symbol x, symbol y]);
         vec := algebra.evecs#(set {1}) - x*sub(standardAxialVector(0,n + 1), ring(x));
         quotientNullVec(algebra, vec);
         n = #algebra.span;
         algebra.evecs#(set {1}) = sub(standardAxialVector(0, n), algebra.field);
         )
-    else algebra.evecs#(set {1}) = algebra.evecs#(set {1})|standardAxialVector(0, n + 1);
+    else algebra.evecs#(set {1}) = algebra.evecs#(set {1})|standardAxialVector(0, n + 1));
     for s in unique(values(tbl)) do (
         if #(toList s) > 1 then (
             for ev in (toList s) do (
@@ -59,6 +59,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
             );
         );
     algebra.polynomials = {};
+    algebra.allpolynullvecs = sub( zeroAxialVector n, algebra.field );
     performFlip algebra;
     algebra
     )
@@ -76,6 +77,8 @@ fusionRule = (set0, set1, tbl) -> (
     )
 
 fusion = {expand => true} >> opts -> algebra -> (
+    if opts.expand == true then print "Performing fusion with expansion"
+    else print "Performing fusion without expansion";
     algebra.temp = copy algebra.evecs;
     n := #(keys algebra.evecs);
     for i to n - 1  do (
@@ -144,15 +147,18 @@ expandAlgebra = algebra -> (
         d := numgens source algebra.evecs#ev;
         algebra.evecs#ev = algebra.evecs#ev || matrix( {toList(d:0)});
         );
+    d = numgens source algebra.allpolynullvecs;
+    algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( {toList(d:0)});
     if algebra#?temp then (
         for ev in keys algebra.temp do (
-            d := numgens source algebra.temp#ev;
+            d = numgens source algebra.temp#ev;
             algebra.temp#ev = algebra.temp#ev || matrix( {toList(d:0)});
             );
         );
     )
 
 findNewEigenvectors = algebra -> (
+    print "Finding new eigenvectors";
     a := sub(standardAxialVector(0, #algebra.span), algebra.field);
     for s in keys algebra.evecs do (
         for i to numgens source algebra.evecs#s - 1 do (
@@ -175,7 +181,7 @@ findNewEigenvectors = algebra -> (
 
 findNullVectors = algebra -> (
     -- intersect distinct eigenspaces
-    test := {};
+    print "Finding null vectors";
     n := #(keys algebra.evecs);
     for i to n - 1 do (
         ev0 := (keys algebra.evecs)#i;
@@ -183,14 +189,12 @@ findNullVectors = algebra -> (
             ev1 := (keys algebra.evecs)#j;
             if ev0 * ev1 === set {} then (
                 algebra.nullspace = mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
-                test = append(test, numgens image algebra.nullspace);
                 for i in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
                     quotientNullVec(algebra, algebra.nullspace_{i});
                     );
                 );
             );
         );
-    if sum test > 0 then print test;
     --algebra.nullspace = mingens image algebra.nullspace;
     --if numgens image algebra.nullspace > 0 then print test;
     -- for i in reverse toList(0..numgens image algebra.nullspace - 1) do (
@@ -270,7 +274,6 @@ GCD = (vec, algebra) -> (
 
 
 quotientNullVec = (algebra, vec) -> (
-    old := #algebra.span;
     if vec == 0 then return;
     vec = entries vec;
     nonzero := positions(vec, x -> x#0 != 0);
@@ -285,11 +288,11 @@ quotientNullVec = (algebra, vec) -> (
     d = sub(d, coefficientRing algebra.field);
     if d != 1 then vec = apply(vec, x -> {x#0*sub(1/d, algebra.field)});
     if all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
-        print "All poly mat";
+        algebra.allpolynullvecs = algebra.allpolynullvecs | matrix(algebra.field, vec);
+        quotientAllPolyNullVecs algebra;
         return false;
         );
     k := last select(nonzero, i -> #support vec#i#0 == 0);
-    print k;
     if k == 0 or k == 1 then error "Is the algebra zero?";
     vec = sub(matrix vec, algebra.field);
     entry := sub(vec_(k,0), coefficientRing algebra.field);
@@ -315,7 +318,6 @@ quotientNullVec = (algebra, vec) -> (
             );
         );
     algebra.span = apply(algebra.span, x -> reduceSpanningVec(x, k));
-
     reduction := toList drop(0..n - 1,{k,k});
     algebra.products = drop(algebra.products,{k,k});
     for i to #algebra.products - 1 do (
@@ -336,11 +338,24 @@ quotientNullVec = (algebra, vec) -> (
             algebra.temp#ev = mingens( image algebra.temp#ev);
             );
         );
+    if algebra#?allpolynullvecs then (
+        algebra.allpolynullvecs = (reduce(algebra.allpolynullvecs, vec, k))^reduction;
+        );
     if algebra#?nullspace then (
         algebra.nullspace = (reduce(algebra.nullspace, vec, k))^reduction;
         );
     algebra.span = drop(algebra.span, {k,k});
-    print({old, #algebra.span})
+    )
+
+quotientAllPolyNullVecs = algebra -> (
+    algebra.allpolynullvecs = mingens image algebra.allpolynullvecs;
+    n := numgens image algebra.allpolynullvecs;
+    for i in reverse toList(0..n - 1) do (
+        vec := flatten entries algebra.allpolynullvecs_{i};
+        if any(vec, x -> x !=0 and #support x == 0 ) then (
+            quotientNullVec(algebra, algebra.allpolynullvecs_{i});
+            );
+        );
     )
 
 quotientNullPolynomials = algebra -> (
@@ -391,7 +406,7 @@ axialSeparateProduct = (u,  v, unknowns, products) -> (
                 );
             );
         );
-    lhs = matrix(algebra.field, toList apply(lhs, x -> {x}));
+    lhs = matrix(r, toList apply(lhs, x -> {x}));
     new MutableHashTable from {vec => -sum(rhs), mat => lhs, l => unknowns }
     )
 
@@ -506,11 +521,27 @@ howManyUnknowns = algebra -> (
 
 mainLoop = algebra -> (
     while true do (
-        n := howManyUnknowns algebra;
-        findNewEigenvectors algebra;
-        findNullVectors algebra;
-        if howManyUnknowns algebra == n then return;
+        m := howManyUnknowns algebra;
+        while true do (
+            n := howManyUnknowns algebra;
+            findNewEigenvectors algebra;
+            findNullVectors algebra;
+            print (n, howManyUnknowns algebra);
+            if howManyUnknowns algebra == n then break;
+            );
+        fusion(algebra, expand => false);
+        if howManyUnknowns algebra == m then return;
         );
+    )
+
+dihedralAlgebra = { field => QQ, primitive => true } >> opts -> (evals, tbl) -> (
+    --algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive);
+    algebra := dihedralAlgebraSetup(evals, tbl);
+    while howManyUnknowns algebra > 0 do (
+        fusion algebra;
+        mainLoop algebra;
+        );
+    return algebra;
     )
 
 -- formerly in findAlgebraProducts
