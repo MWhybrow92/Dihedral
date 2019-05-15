@@ -92,23 +92,11 @@ fusion = {expand => true} >> opts -> algebra -> (
                         if i < numgens source algebra.evecs#set0 and j < numgens source algebra.evecs#set1 then (
                             u := (algebra.evecs#set0)_{i};
                             v := (algebra.evecs#set1)_{j};
-                            if opts.expand == false then prod := axialProduct(u, v, algebra.products)
-                            else (
-                                unknowns := {};
-                                prod = axialSeparateProduct(u, v, unknowns, algebra.products);
-                                unknowns = prod.l;
-                                for k to #unknowns - 1 do (
-                                    x := unknowns#k;
-                                    algebra.span = append(algebra.span, x);
-                                    expandAlgebra algebra;
-                                    n := #algebra.span;
-                                    algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), algebra.field);
-                                    algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), algebra.field);
-                                    prod.vec = prod.vec || matrix({{0}});
-                                    prod.vec = prod.vec - algebra.products#(x#1)#(x#0)*(prod.mat_(k,0));
-                                    );
-                                prod = prod.vec;
+                            if opts.expand then (
+                                unknowns := findUnknowns(u, v, algebra.products);
+                                expandAlgebra(algebra, unknowns);
                                 );
+                            prod := axialProduct(u, v, algebra.products);
                             if prod =!= false then (
                                 if rule === set {} then quotientNullspace (algebra, prod)
                                 else (
@@ -131,28 +119,37 @@ fusion = {expand => true} >> opts -> algebra -> (
         -- Implement intersect algorithm?
     )
 
-expandAlgebra = algebra -> (
+expandAlgebra = (algebra, unknowns) -> (
+    if #unknowns == 0 then return;
+    r := algebra.field;
+    for i to #unknowns - 1 do (
+        x := unknowns#i;
+        n := #algebra.span;
+        algebra.span = append(algebra.span, x);
+        algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), r);
+        algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), r);
+        );
     n := #algebra.span;
     k := #algebra.products;
-    for i to k - 1 do algebra.products#i = join(algebra.products#i , new MutableList from (n-k):false) ;
+    for i to k - 1 do algebra.products#i = join(algebra.products#i, new MutableList from (n-k):false) ;
     algebra.products = join(algebra.products, new MutableList from (n-k):(new MutableList from (n:false)));
     for i to n - 1 do (
         for j to n - 1 do (
             if algebra.products#i#j =!= false then (
-                algebra.products#i#j = algebra.products#i#j || matrix({{0}})
+                algebra.products#i#j = algebra.products#i#j || matrix(toList((n -k):{0}));
                 );
             );
         );
     for ev in keys algebra.evecs do (
         d := numgens source algebra.evecs#ev;
-        algebra.evecs#ev = algebra.evecs#ev || matrix( {toList(d:0)});
+        algebra.evecs#ev = algebra.evecs#ev || matrix( toList((n-k):toList(d:0)));
         );
     d = numgens source algebra.allpolynullvecs;
-    algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( {toList(d:0)});
+    algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( toList((n-k):toList(d:0)));
     if algebra#?temp then (
         for ev in keys algebra.temp do (
             d = numgens source algebra.temp#ev;
-            algebra.temp#ev = algebra.temp#ev || matrix( {toList(d:0)});
+            algebra.temp#ev = algebra.temp#ev || matrix( toList((n-k):toList(d:0)));
             );
         );
     )
@@ -379,6 +376,22 @@ quotientAllPolyNullVecs = algebra -> (
 
 reduce = (u, v, k) -> u - v*u^{k}
 
+findUnknowns = (u, v, products) -> (
+    unknowns := {};
+    for i to numgens target u - 1 do (
+        if u_(i,0) != 0 then (
+            for j to numgens target v - 1 do (
+                if v_(j,0) != 0 then (
+                    if products#i#j === false then (
+                        unknowns = append(unknowns, sort {i,j});
+                        );
+                    );
+                );
+            );
+        );
+    return unique unknowns;
+    )
+
 -- might want to swap lhs and rhs now that we are working with columns
 axialSeparateProduct = (u,  v, unknowns, products) -> (
     r := ring products#0#0;
@@ -455,9 +468,7 @@ flipVector = (vec, algebra) -> (
             else (
                 algebra.span = append(algebra.span, sort(im));
                 n := #algebra.span;
-                expandAlgebra(algebra);
-                algebra.products#(im#0)#(im#1) = sub(standardAxialVector(n-1, n), algebra.field);
-                algebra.products#(im#1)#(im#0) = sub(standardAxialVector(n-1, n), algebra.field);
+                expandAlgebra(algebra, {im});
                 f = findFlip algebra;
                 res = res || matrix({{0}});
                 res = res + sub(standardAxialVector(n - 1, n),r)*v#i;
