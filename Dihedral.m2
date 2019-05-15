@@ -121,37 +121,36 @@ fusion = {expand => true} >> opts -> algebra -> (
 
 expandAlgebra = (algebra, unknowns) -> (
     if #unknowns == 0 then return;
-    r := algebra.field;
-    for i to #unknowns - 1 do (
-        x := unknowns#i;
-        n := #algebra.span;
-        algebra.span = append(algebra.span, x);
-        algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n-1, n), r);
-        algebra.products#(x#1)#(x#0) = sub(standardAxialVector(n-1, n), r);
-        );
+    k := #unknowns;
     n := #algebra.span;
-    k := #algebra.products;
-    for i to k - 1 do algebra.products#i = join(algebra.products#i, new MutableList from (n-k):false) ;
-    algebra.products = join(algebra.products, new MutableList from (n-k):(new MutableList from (n:false)));
-    for i to n - 1 do (
-        for j to n - 1 do (
+
+    for i to n - 1 do algebra.products#i = join(algebra.products#i, new MutableList from k:false) ;
+    algebra.products = join(algebra.products, new MutableList from k:(new MutableList from (n+k):false));
+    for i to n + k - 1 do (
+        for j to n + k - 1 do (
             if algebra.products#i#j =!= false then (
-                algebra.products#i#j = algebra.products#i#j || matrix(toList((n -k):{0}));
+                algebra.products#i#j = algebra.products#i#j || matrix(toList(k:{0}));
                 );
             );
         );
     for ev in keys algebra.evecs do (
         d := numgens source algebra.evecs#ev;
-        algebra.evecs#ev = algebra.evecs#ev || matrix( toList((n-k):toList(d:0)));
+        algebra.evecs#ev = algebra.evecs#ev || matrix( toList(k:toList(d:0)));
         );
     d = numgens source algebra.allpolynullvecs;
-    algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( toList((n-k):toList(d:0)));
+    algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( toList(k:toList(d:0)));
     if algebra#?temp then (
         for ev in keys algebra.temp do (
             d = numgens source algebra.temp#ev;
-            algebra.temp#ev = algebra.temp#ev || matrix( toList((n-k):toList(d:0)));
+            algebra.temp#ev = algebra.temp#ev || matrix( toList(k:toList(d:0)));
             );
         );
+    for i to k - 1 do (
+        x := unknowns#i;
+        algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n + i, n + k), algebra.field);
+        algebra.products#(x#1)#(x#0) = algebra.products#(x#0)#(x#1);
+        );
+    algebra.span = algebra.span | unknowns;
     )
 
 findNewEigenvectors = algebra -> (
