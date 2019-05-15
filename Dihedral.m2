@@ -110,7 +110,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                                 prod = prod.vec;
                                 );
                             if prod =!= false then (
-                                if rule === set {} then quotientNullVec(algebra, prod)
+                                if rule === set {} then quotientNullspace (algebra, prod)
                                 else (
                                     for s in unique values algebra.tbl do(
                                         if isSubset(rule, s) then (
@@ -166,7 +166,7 @@ findNewEigenvectors = algebra -> (
                 u := algebra.evecs#s_{i};
                 prod := axialProduct(a, u, algebra.products);
                 if prod =!= false then
-                    if #s == 1 then quotientNullVec(algebra, prod - u*(toList s)#0)
+                    if #s == 1 then quotientNullspace (algebra, prod - u*(toList s)#0)
                     else (
                         for ev in toList s do (
                             d := s - set {ev};
@@ -179,6 +179,29 @@ findNewEigenvectors = algebra -> (
     for s in keys algebra.evecs do algebra.evecs#s = mingens image algebra.evecs#s
     )
 
+quotientNullPolynomials = algebra -> (
+    if #algebra.polynomials == 0 then return;
+    I := ideal algebra.polynomials;
+    for i to #algebra.products - 1 do (
+        for j to #algebra.products - 1 do (
+            if algebra.products#i#j =!= false then (
+                algebra.products#i#j = algebra.products#i#j % I;
+                );
+            );
+        );
+    for ev in keys algebra.evecs do (
+        algebra.evecs#ev = algebra.evecs#ev % I;
+        );
+    if algebra#?temp then (
+        for ev in keys algebra.temp do (
+            algebra.temp#ev = algebra.temp#ev % I;
+            );
+        );
+    if algebra#?nullspace then (
+        algebra.nullspace = algebra.nullspace % I;
+        );
+    )
+
 findNullVectors = algebra -> (
     -- intersect distinct eigenspaces
     print "Finding null vectors";
@@ -188,27 +211,13 @@ findNullVectors = algebra -> (
         for j in (i + 1 .. n - 1) do (
             ev1 := (keys algebra.evecs)#j;
             if ev0 * ev1 === set {} then (
-                algebra.nullspace = mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
-                for i in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
-                    quotientNullVec(algebra, algebra.nullspace_{i});
+                za := mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
+                quotientNullspace (algebra, za);
+                --for i in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
+                --    quotientNullVec(algebra, algebra.nullspace_{i});
                     );
                 );
             );
-        );
-    --algebra.nullspace = mingens image algebra.nullspace;
-    --if numgens image algebra.nullspace > 0 then print test;
-    -- for i in reverse toList(0..numgens image algebra.nullspace - 1) do (
-    --    quotientNullVec(algebra, algebra.nullspace_{i});
-    --    );
-    -- while true do ( -- quite ugly
-    --    k := findNullIndex algebra.nullspace;
-    --    if k === false then break;
-    --    i := quotientNullVec(algebra, algebra.nullspace_{k});
-    --    if i === false then (
-    --        algebra.nullspace = algebra.nullspace_(toList( drop(0..numgens image algebra.nullspace - 1, {k,k})));
-    --        );
-    --    );
-    remove(algebra, nullspace);
     quotientNullPolynomials algebra;
     performFlip algebra;
     )
@@ -272,6 +281,23 @@ GCD = (vec, algebra) -> (
     sub(gcd coeffs, algebra.field)
     )
 
+quotientNullspace = (algebra, mat) -> (
+    if mat == 0 then return;
+    algebra.nullspace = mat;
+    n := #algebra.span;
+    d := numgens image algebra.nullspace;
+    for i to n - 1 do (
+        a := standardAxialVector(i, n);
+        for j to d - 1 do (
+            prod := axialProduct( a, algebra.nullspace_{j}, algebra.products );
+            if prod =!= false then algebra.nullspace = algebra.nullspace | prod;
+            );
+        );
+    algebra.nullspace = mingens image algebra.nullspace;
+    for i in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
+        quotientNullVec(algebra, algebra.nullspace_{i});
+        );
+    )
 
 quotientNullVec = (algebra, vec) -> (
     if vec == 0 then return;
@@ -279,7 +305,7 @@ quotientNullVec = (algebra, vec) -> (
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
     d := GCD(flatten vec, algebra);
-    if #support d == 1 then error "polynomial";
+    if #algebra.evals > 3 and  #support d == 1 then error "polynomial";
     if #support d > 0 then (
         algebra.polynomials = append(algebra.polynomials, d);
         quotientNullPolynomials algebra;
@@ -353,31 +379,8 @@ quotientAllPolyNullVecs = algebra -> (
     for i in reverse toList(0..n - 1) do (
         vec := flatten entries algebra.allpolynullvecs_{i};
         if any(vec, x -> x !=0 and #support x == 0 ) then (
-            quotientNullVec(algebra, algebra.allpolynullvecs_{i});
+            quotientNullspace (algebra, algebra.allpolynullvecs_{i});
             );
-        );
-    )
-
-quotientNullPolynomials = algebra -> (
-    if #algebra.polynomials == 0 then return;
-    I := ideal algebra.polynomials;
-    for i to #algebra.products - 1 do (
-        for j to #algebra.products - 1 do (
-            if algebra.products#i#j =!= false then (
-                algebra.products#i#j = algebra.products#i#j % I;
-                );
-            );
-        );
-    for ev in keys algebra.evecs do (
-        algebra.evecs#ev = algebra.evecs#ev % I;
-        );
-    if algebra#?temp then (
-        for ev in keys algebra.temp do (
-            algebra.temp#ev = algebra.temp#ev % I;
-            );
-        );
-    if algebra#?nullspace then (
-        algebra.nullspace = algebra.nullspace % I;
         );
     )
 
@@ -438,7 +441,8 @@ findFlip = algebra -> (
     f
     )
 
-flipVector = (vec, f, algebra) -> (
+flipVector = (vec, algebra) -> (
+    f := findFlip algebra;
     r := ring vec;
     v := apply( entries vec, p -> sub(p#0, {r_0 => r_1, r_1 => r_0}));
     if #algebra.polynomials > 0 then (
@@ -473,22 +477,21 @@ flipVector = (vec, f, algebra) -> (
 
 performFlip = algebra -> (
     n := #algebra.span;
-    f := findFlip algebra;
     -- might need to be more careful with the indices if a nullspace vec occurs here
     for i to n -1 do (
         for j to n - 1 do (
             if i < #algebra.products and j < #algebra.products then (
+                f := findFlip algebra;
                 im := f_{i,j};
                 if not member(null, im) and algebra.products#i#j =!= false then (
-                    f = findFlip algebra;
-                    vec := flipVector(algebra.products#i#j, f, algebra);
+                    vec := flipVector(algebra.products#i#j, algebra);
                     if vec =!= false then (
                         if algebra.products#(im#0)#(im#1) === false then (
                             algebra.products#(im#0)#(im#1) = vec;
                             algebra.products#(im#1)#(im#0) = vec;
                             )
                         else if vec != algebra.products#(im#0)#(im#1) then (
-                            quotientNullVec(algebra, vec-algebra.products#(im#0)#(im#1));
+                            quotientNullspace (algebra, vec-algebra.products#(im#0)#(im#1));
                             );
                         );
                     );
