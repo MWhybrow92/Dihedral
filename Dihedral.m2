@@ -175,6 +175,8 @@ findNewEigenvectors = algebra -> (
     )
 
 quotientNullPolynomials = algebra -> (
+    algebra.polynomials = unique select(algebra.polynomials, x -> #support x > 0);
+    algebra.polynomials = flatten entries groebnerBasis ideal algebra.polynomials;
     if #algebra.polynomials == 0 then return;
     I := ideal algebra.polynomials;
     for i to #algebra.products - 1 do (
@@ -279,7 +281,6 @@ quotientNullspace = (algebra, mat) -> (
             );
         );
     algebra.nullspace = mingens image algebra.nullspace;
-    if numgens image mat > 1 then print (numgens image mat, numgens image algebra.nullspace);
     if numgens image algebra.nullspace == 46 then error "pause";
     for j in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
         quotientNullVec(algebra, algebra.nullspace_{j});
@@ -292,19 +293,16 @@ quotientNullVec = (algebra, vec) -> (
     vec = entries vec;
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
-    d := GCD(flatten vec, algebra);
-    if #algebra.evals > 3 and  #support d == 1 then error "polynomial";
-    if #support d > 0 then (
-        algebra.polynomials = append(algebra.polynomials, d);
-        quotientNullPolynomials algebra;
-        return;
-        );
-    d = sub(d, coefficientRing algebra.field);
-    if d != 1 then vec = apply(vec, x -> {x#0*sub(1/d, algebra.field)});
     if all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
-        algebra.allpolynullvecs = algebra.allpolynullvecs | matrix(algebra.field, vec);
-        quotientAllPolyNullVecs algebra;
-        return false;
+        if all(nonzero, i -> i < 2) then (
+            algebra.polynomials = algebra.polynomials | flatten vec;
+            quotientNullPolynomials algebra;
+            return false;
+            )
+        else (
+            algebra.allpolynullvecs = algebra.allpolynullvecs | matrix(algebra.field, vec);
+            return false;
+            );
         );
     k := last select(nonzero, i -> #support vec#i#0 == 0);
     if k == 0 or k == 1 then error "Is the algebra zero?";
@@ -321,9 +319,12 @@ quotientNullVec = (algebra, vec) -> (
                 else u = standardAxialVector(x#0,n);
                 if x#1 == k then v := prod
                 else v = standardAxialVector(x#1,n);
+                unknowns := findUnknowns(u, v, algebra.products);
+                if #unknowns > 0 then print "Expanding in quotient func";
+                expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
                 --if newProd === false then error "Cannot find product";
-                if newProd === false then print("Cannot quotient vector ", k); return;
+                --if newProd === false then print("Cannot quotient vector ", k); return;
                 quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
                 n = #algebra.span;
                 vec = vec^(toList (0..n-1));
