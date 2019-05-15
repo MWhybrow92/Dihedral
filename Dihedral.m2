@@ -123,7 +123,6 @@ expandAlgebra = (algebra, unknowns) -> (
     if #unknowns == 0 then return;
     k := #unknowns;
     n := #algebra.span;
-
     for i to n - 1 do algebra.products#i = join(algebra.products#i, new MutableList from k:false) ;
     algebra.products = join(algebra.products, new MutableList from k:(new MutableList from (n+k):false));
     for i to n + k - 1 do (
@@ -461,17 +460,12 @@ flipVector = (vec, algebra) -> (
             if member(null, im) then return false;
             -- TODO this means that we cannot find the image of this vector under the flip
             -- should we add this image to the spanning set and expand the algebra?S
-            if algebra.products#(im#0)#(im#1) =!= false then (
-                res = res + algebra.products#(im#0)#(im#1)*(v#i)
-                )
-            else (
-                algebra.span = append(algebra.span, sort(im));
-                n := #algebra.span;
+            if algebra.products#(im#0)#(im#1) === false then (
                 expandAlgebra(algebra, {im});
-                f = findFlip algebra;
                 res = res || matrix({{0}});
-                res = res + sub(standardAxialVector(n - 1, n),r)*v#i;
+                f = findFlip algebra;
                 );
+            res = res + algebra.products#(im#0)#(im#1)*(v#i);
         )
         else res = res + sub(standardAxialVector(k, #algebra.span),r)*v#i;
     );
