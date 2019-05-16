@@ -20,6 +20,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
     algebra := new MutableHashTable;
     algebra.evals = evals;
     algebra.tbl = tbl;
+    algebra.evalpairs = evalPairs tbl;
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
     algebra.polynomials = {};
@@ -62,6 +63,19 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
         );
     performFlip algebra;
     algebra
+    )
+
+evalPairs = tbl -> (
+    evals := {};
+    sets = select(unique values tbl,  x -> #x > 0);
+    for ev in sets do (
+        disjoint := select(sets, x -> #(x*ev) == 0);
+        sizes := apply(disjoint, x -> #x);
+        disjoint = select(disjoint, x -> #x == max sizes);
+        evals =  evals | apply(disjoint, x -> {ev, x} );
+        delete(ev, sets);
+        );
+    return evals;
     )
 
 fusionRule = (set0, set1, tbl) -> (
@@ -115,7 +129,6 @@ fusion = {expand => true} >> opts -> algebra -> (
         );
         for ev in keys algebra.temp do algebra.evecs#ev = mingens(image algebra.temp#ev);
         remove(algebra, temp);
-        performFlip algebra;
         -- Implement intersect algorithm?
     )
 
@@ -152,13 +165,19 @@ expandAlgebra = (algebra, unknowns) -> (
     algebra.span = algebra.span | unknowns;
     )
 
-findNewEigenvectors = algebra -> (
-    print "Finding new eigenvectors";
+findNewEigenvectors = {expand => true} >> opts -> algebra -> (
+    if opts.expand then print "Finding new eigenvectors with expansion"
+    else print "Finding new eigenvectors without expansion";
     a := sub(standardAxialVector(0, #algebra.span), algebra.field);
     for s in keys algebra.evecs do (
         for i to numgens source algebra.evecs#s - 1 do (
             if i < numgens source algebra.evecs#s then (
                 u := algebra.evecs#s_{i};
+                if opts.expand then (
+                    unknowns := findUnknowns(a, u, algebra.products);
+                    expandAlgebra(algebra, unknowns);
+                    u = algebra.evecs#s_{i};
+                    );
                 prod := axialProduct(a, u, algebra.products);
                 if prod =!= false then
                     if #s == 1 then quotientNullspace (algebra, prod - u*(toList s)#0)
@@ -175,7 +194,6 @@ findNewEigenvectors = algebra -> (
     )
 
 quotientNullPolynomials = algebra -> (
-    algebra.polynomials = unique select(algebra.polynomials, x -> #support x > 0);
     algebra.polynomials = flatten entries groebnerBasis ideal algebra.polynomials;
     if #algebra.polynomials == 0 then return;
     I := ideal algebra.polynomials;
@@ -201,21 +219,10 @@ quotientNullPolynomials = algebra -> (
 findNullVectors = algebra -> (
     -- intersect distinct eigenspaces
     print "Finding null vectors";
-    n := #(keys algebra.evecs);
-    for i to n - 1 do (
-        ev0 := (keys algebra.evecs)#i;
-        for j in (i + 1 .. n - 1) do (
-            ev1 := (keys algebra.evecs)#j;
-            if ev0 * ev1 === set {} then (
-                za := mingens intersect(image algebra.evecs#ev0, image algebra.evecs#ev1);
-                quotientNullspace (algebra, za);
-                --for i in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
-                --    quotientNullVec(algebra, algebra.nullspace_{i});
-                    );
-                );
-            );
-    quotientNullPolynomials algebra;
-    performFlip algebra;
+    for ev in algebra.evalpairs do (
+        za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
+        quotientNullspace (algebra, za);
+        );
     )
 
 findFirstEigenvectors = (evals, field) -> (
@@ -280,22 +287,27 @@ quotientNullspace = (algebra, mat) -> (
             if prod =!= false then algebra.nullspace = algebra.nullspace | prod;
             );
         );
+    print ("Size of nullspace", d, numgens image algebra.nullspace );
     algebra.nullspace = mingens image algebra.nullspace;
-    if numgens image algebra.nullspace == 46 then error "pause";
+    print numgens image algebra.nullspace;
     for j in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
         quotientNullVec(algebra, algebra.nullspace_{j});
         );
     remove (algebra, nullspace);
+    performFlip algebra;
     )
 
 quotientNullVec = (algebra, vec) -> (
     if vec == 0 then return;
+    r := algebra.field;
     vec = entries vec;
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
     if all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
         if all(nonzero, i -> i < 2) then (
-            algebra.polynomials = algebra.polynomials | flatten vec;
+            polys := unique select(flatten vec, p -> #support p > 0);
+            polys = apply(polys, p -> sub(p, {r_0 => r_1, r_1 => r_0} ));
+            algebra.polynomials = algebra.polynomials | polys;
             quotientNullPolynomials algebra;
             return false;
             )
@@ -525,8 +537,8 @@ mainLoop = algebra -> (
         m := howManyUnknowns algebra;
         while true do (
             n := howManyUnknowns algebra;
-            findNewEigenvectors algebra;
             findNullVectors algebra;
+            findNewEigenvectors(algebra, expand => false);
             print (n, howManyUnknowns algebra);
             if howManyUnknowns algebra == n then break;
             );
@@ -539,6 +551,12 @@ dihedralAlgebra = { field => QQ, primitive => true } >> opts -> (evals, tbl) -> 
     --algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive);
     algebra := dihedralAlgebraSetup(evals, tbl);
     while howManyUnknowns algebra > 0 do (
+        while true do (
+            n := howManyUnknowns algebra;
+            findNewEigenvectors algebra;
+            mainLoop algebra;
+            if howManyUnknowns algebra == n then break;
+            );
         fusion algebra;
         mainLoop algebra;
         );
