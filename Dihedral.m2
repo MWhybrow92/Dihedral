@@ -32,9 +32,9 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
         algebra.products#i = new MutableList from {};
         for j to n do algebra.products#i#j = false;
         );
-    for i to 1 do algebra.products#i#i = standardAxialVector(i, n + 1);
-    for i in 1..n-1 do algebra.products#0#i = standardAxialVector(i + 1, n + 1);
-    for i in 1..n-1 do algebra.products#i#0 = standardAxialVector(i + 1, n + 1);
+    for i to 1 do algebra.products#i#i = sub(standardAxialVector(i, n + 1), algebra.field);
+    for i in 1..n-1 do algebra.products#0#i = sub(standardAxialVector(i + 1, n + 1), algebra.field);
+    for i in 1..n-1 do algebra.products#i#0 = sub(standardAxialVector(i + 1, n + 1), algebra.field);
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
     for ev in delete( set({}), unique(values(tbl))) do (
@@ -45,7 +45,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
     evecs := findFirstEigenvectors(evals, algebra.field);
     for i to n - 1 do algebra.evecs#(set {evals#i}) = matrix evecs_{i};
     -- If we assume primitivity then change the field to a polynomial ring
-    if algebra.primitive = true then (
+    if algebra.primitive then (
         changeRingOfAlgebra(algebra, algebra.field[symbol x, symbol y]);
         vec := algebra.evecs#(set {1}) - x*sub(standardAxialVector(0,n + 1), ring(x));
         quotientNullspace (algebra, vec);
@@ -129,6 +129,7 @@ fusion = {expand => true} >> opts -> algebra -> (
         );
         for ev in keys algebra.temp do algebra.evecs#ev = mingens(image algebra.temp#ev);
         remove(algebra, temp);
+        performFlip algebra;
         -- Implement intersect algorithm?
     )
 
@@ -190,7 +191,8 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                     );
                 );
             );
-    for s in keys algebra.evecs do algebra.evecs#s = mingens image algebra.evecs#s
+    for s in keys algebra.evecs do algebra.evecs#s = mingens image algebra.evecs#s;
+    performFlip algebra;
     )
 
 quotientNullPolynomials = algebra -> (
@@ -223,6 +225,7 @@ findNullVectors = algebra -> (
         za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
         quotientNullspace (algebra, za);
         );
+    performFlip algebra;
     )
 
 findFirstEigenvectors = (evals, field) -> (
@@ -287,14 +290,11 @@ quotientNullspace = (algebra, mat) -> (
             if prod =!= false then algebra.nullspace = algebra.nullspace | prod;
             );
         );
-    print ("Size of nullspace", d, numgens image algebra.nullspace );
     algebra.nullspace = mingens image algebra.nullspace;
-    print numgens image algebra.nullspace;
     for j in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
         quotientNullVec(algebra, algebra.nullspace_{j});
         );
     remove (algebra, nullspace);
-    performFlip algebra;
     )
 
 quotientNullVec = (algebra, vec) -> (
@@ -303,7 +303,7 @@ quotientNullVec = (algebra, vec) -> (
     vec = entries vec;
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
-    if all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
+    if algebra.primitive and all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
         if all(nonzero, i -> i < 2) then (
             polys := unique select(flatten vec, p -> #support p > 0);
             polys = apply(polys, p -> sub(p, {r_0 => r_1, r_1 => r_0} ));
@@ -316,10 +316,12 @@ quotientNullVec = (algebra, vec) -> (
             return false;
             );
         );
-    k := last select(nonzero, i -> #support vec#i#0 == 0);
+    if algebra.primitive then k := last select(nonzero, i -> #support vec#i#0 == 0)
+    else k = last nonzero;
     if k == 0 or k == 1 then error "Is the algebra zero?";
     vec = sub(matrix vec, algebra.field);
-    entry := sub(vec_(k,0), coefficientRing algebra.field);
+    if algebra.primitive then entry := sub(vec_(k,0), coefficientRing algebra.field)
+    else entry := vec_(k,0);
     n := #algebra.span;
     prod := standardAxialVector(k,n) - vec*(sub(1/entry, algebra.field));
     vec = vec*sub(1/entry, algebra.field);
@@ -375,6 +377,7 @@ quotientNullVec = (algebra, vec) -> (
     )
 
 quotientAllPolyNullVecs = algebra -> (
+    if not algebra.primitive then return;
     algebra.allpolynullvecs = mingens image algebra.allpolynullvecs;
     n := numgens image algebra.allpolynullvecs;
     for i in reverse toList(0..n - 1) do (
@@ -461,7 +464,8 @@ findFlip = algebra -> (
 flipVector = (vec, algebra) -> (
     f := findFlip algebra;
     r := ring vec;
-    v := apply( entries vec, p -> sub(p#0, {r_0 => r_1, r_1 => r_0}));
+    v := flatten entries vec;
+    if algebra.primitive then v = apply( v, p -> sub(p, {r_0 => r_1, r_1 => r_0}));
     if #algebra.polynomials > 0 then (
         v = apply( v, p -> p % (ideal algebra.polynomials));
         );
@@ -548,8 +552,7 @@ mainLoop = algebra -> (
     )
 
 dihedralAlgebra = { field => QQ, primitive => true } >> opts -> (evals, tbl) -> (
-    --algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive);
-    algebra := dihedralAlgebraSetup(evals, tbl);
+    algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive);
     while howManyUnknowns algebra > 0 do (
         while true do (
             n := howManyUnknowns algebra;
