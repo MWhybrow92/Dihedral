@@ -286,7 +286,7 @@ quotientNullVec = (algebra, vec) -> (
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
     if algebra.primitive and all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
-        if all(nonzero, i -> i < 3) then (
+        if all(nonzero, i -> i < 2) then (
             print vec;
             polys := unique select(flatten vec, p -> #support p > 0);
             polys = apply(polys, p -> sub(p, {r_0 => r_1, r_1 => r_0} ));
@@ -422,13 +422,20 @@ imageFlip = (i, f, algebra) -> (
     x := algebra.span#i;
     im0 := f_(x#0);
     im1 := f_(x#1);
-    if im1 =!= null and im0 =!= null then return algebra.products#im0#im1;
+    if im1 =!= null and im0 =!= null then (
+        if algebra.products#im0#im1 === false then (
+            expandAlgebra(algebra, {{im0, im1}});
+            );
+        return algebra.products#im0#im1;
+        );
     if im0 === null then im0 = imageFlip(x#0, f, algebra)
     else im0 =  sub(standardAxialVector(im0, n), algebra.field);
     if im0 === false then return false;
     if im1 === null then im1 = imageFlip(x#1, f, algebra)
     else im1 =  sub(standardAxialVector(im1, n), algebra.field);
     if im1 === false then return false;
+    unknowns := findUnknowns (im0, im1, algebra.products);
+    expandAlgebra (algebra, unknowns);
     return axialProduct(im0, im1, algebra.products);
     )
 
@@ -444,6 +451,9 @@ flipVector = (vec, algebra) -> (
     for i in positions(v, x -> x !=0 ) do (
         im := imageFlip(i, f, algebra);
         if im === false then return false;
+        if #algebra.span != numgens target res then (
+            res = res || matrix( toList ((#algebra.span - numgens target res):{0}) );
+            );
         res = res + im*v#i;
         );
     res
