@@ -260,24 +260,6 @@ reduceSpanningVec = (vec, k) -> (
     vec
     )
 
--- ugly but here we go
--- this is a hacky fix to get around the fact that M2 can't calculate
--- gcd's over iterated polynomials
-
-GCD = (vec, algebra) -> (
-    r := coefficientRing algebra.field;
-    if #gens(r) == 0 then return gcd vec;
-    s := coefficientRing r;
-    coeffs := apply(vec, p -> flatten( entries((coefficients p)#1)));
-    coeffs = apply(coeffs, x -> apply(x, y -> sub(y, r)));
-    denoms = apply(coeffs, x -> apply(x, denominator));
-    d := sub(lcm(flatten denoms), algebra.field);
-    coeffs = flatten(entries((matrix apply(vec, x -> {x}))*d));
-    R := s[ join(gens r, gens algebra.field) ];
-    coeffs = apply(coeffs, x -> sub(x, R));
-    sub(gcd coeffs, algebra.field)
-    )
-
 quotientNullspace = (algebra, mat) -> (
     if mat == 0 then return;
     algebra.nullspace = mat;
@@ -337,8 +319,6 @@ quotientNullVec = (algebra, vec) -> (
                 if #unknowns > 0 then print "Expanding in quotient func";
                 expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
-                --if newProd === false then error "Cannot find product";
-                --if newProd === false then print("Cannot quotient vector ", k); return;
                 quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
                 n = #algebra.span;
                 vec = vec^(toList (0..n-1));
@@ -404,33 +384,6 @@ findUnknowns = (u, v, products) -> (
             );
         );
     return unique unknowns;
-    )
-
--- might want to swap lhs and rhs now that we are working with columns
-axialSeparateProduct = (u,  v, unknowns, products) -> (
-    r := ring products#0#0;
-    n := #products;
-    lhs := new MutableList from (n^2:0);
-    rhs := {};
-    for i to numgens target u - 1 do (
-        if u_(i,0) != 0 then (
-            for j to numgens target v - 1 do (
-                if v_(j,0) != 0 then (
-                    if products#i#j === false then (
-                        pos := position( unknowns, x -> x == sort {i,j} );
-                        if pos === null then (
-                            unknowns = append(unknowns, sort {i,j});
-                            pos = #unknowns - 1;
-                            );
-                        lhs#pos = lhs#pos + u_(i,0)*v_(j,0);
-                        )
-                    else rhs = append( rhs, (u_(i,0)*v_(j,0))*products#i#j );
-                    );
-                );
-            );
-        );
-    lhs = matrix(r, toList apply(lhs, x -> {x}));
-    new MutableHashTable from {vec => -sum(rhs), mat => lhs, l => unknowns }
     )
 
 axialProduct = (u, v, products) -> (
@@ -565,17 +518,3 @@ dihedralAlgebra = { field => QQ, primitive => true } >> opts -> (evals, tbl) -> 
         );
     return algebra;
     )
-
--- formerly in findAlgebraProducts
-
---pos := positions(flatten(entries(eqn.mat)), x -> x != 0);
---if #pos == 1 then (
-    --x := system.unknowns#(pos#0);
-    --if #support(eqn.mat_(pos#0,0)) > 0 then error "polynomial coeff";
-    --y := 1/sub(eqn.mat_(pos#0,0), coefficientRing algebra.field);
-    --algebra.products#(x#0)#(x#1) = eqn.vec*y;
-    --algebra.products#(x#1)#(x#0) = eqn.vec*y; )
---else (
-    --system.mat = system.mat | eqn.mat;
-    --system.vec = system.vec | eqn.vec;
-    --);
