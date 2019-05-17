@@ -303,7 +303,7 @@ quotientNullVec = (algebra, vec) -> (
     if k == 0 or k == 1 then error "Is the algebra zero?";
     vec = sub(matrix vec, algebra.field);
     if algebra.primitive then entry := sub(vec_(k,0), coefficientRing algebra.field)
-    else entry := vec_(k,0);
+    else entry = vec_(k,0);
     n := #algebra.span;
     prod := standardAxialVector(k,n) - vec*(sub(1/entry, algebra.field));
     vec = vec*sub(1/entry, algebra.field);
