@@ -1,12 +1,13 @@
+-- build generic vectors
 zeroAxialVector = (n) -> transpose matrix { toList(n:0) }
 standardAxialVector = (i, n) -> transpose matrix { toList( splice( (i:0, 1, n-i-1:0) ) ) }
 
+-- automotically construct the Jordan and Monster fusion tables
 JordanTable = n -> hashTable {
     {1,1} => set {1}, {1,0} => set {}, {1,n} => set {n},
     {0,1} => set {}, {0,0} => set {0}, {0,n} => set {n},
     {n,1} => set {n}, {n,0} => set {n}, {n,n} => set {1,0}
 }
-
 MonsterTable = (a,b) -> hashTable {
     {1,1} => set {1}, {1,0} => set {}, {1,a} => set {a}, {1,b} => set {b},
     {0,1} => set {}, {0,0} => set {0}, {0,a} => set {a}, {0,b} => set {b},
@@ -14,13 +15,13 @@ MonsterTable = (a,b) -> hashTable {
     {b,1} => set {b}, {b,0} => set {b}, {b,a} => set {b}, {b,b} => set {1, 0, a}
 }
 
-dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl) -> (
+dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
     n := #evals;
     -- Set up algebra hash table
     algebra := new MutableHashTable;
     algebra.evals = evals;
     algebra.tbl = tbl;
-    algebra.evalpairs = evalPairs tbl;
+    algebra.usefulpairs = usefulPairs(evals, tbl);
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
     algebra.polynomials = {};
@@ -37,10 +38,8 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
     for i in 1..n-1 do algebra.products#i#0 = sub(standardAxialVector(i + 1, n + 1), algebra.field);
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
-    for ev in delete( set({}), unique(values(tbl))) do (
+    for ev in flatten algebra.usefulpairs do (
         algebra.evecs#ev = zeroAxialVector(n + 1);
-    --for ev in apply(subsets evals, set) do (
-    --    if #ev =!= 0 and #ev =!= n then algebra.evecs#ev = zeroAxialVector(n + 1);
         );
     evecs := findFirstEigenvectors(evals, algebra.field);
     for i to n - 1 do algebra.evecs#(set {evals#i}) = matrix evecs_{i};
@@ -53,6 +52,9 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
         algebra.evecs#(set {1}) = sub(standardAxialVector(0, n), algebra.field);
         )
     else algebra.evecs#(set {1}) = algebra.evecs#(set {1})|standardAxialVector(0, n + 1);
+    -- If we assume that the alg admits a form then x = y
+    if opts.form and opts.primitive then algebra.polynomials = {algebra.field_0 - algebra.field_1}; -- pretty but not so efficient
+    -- Build the full eigenspaces
     for s in unique(values(tbl)) do (
         if #(toList s) > 1 then (
             for ev in (toList s) do (
@@ -65,17 +67,21 @@ dihedralAlgebraSetup = { field => QQ, primitive => true } >> opts -> (evals, tbl
     algebra
     )
 
-evalPairs = tbl -> (
-    evals := {};
-    sets = select(unique values tbl,  x -> #x > 0);
-    for ev in sets do (
-        disjoint := select(sets, x -> #(x*ev) == 0);
-        sizes := apply(disjoint, x -> #x);
-        disjoint = select(disjoint, x -> #x == max sizes);
-        evals =  evals | apply(disjoint, x -> {ev, x} );
-        delete(ev, sets);
+usefulPairs = (evals, tbl) -> (
+    pset := select( subsets evals, x -> #x != 0 and #x != #evals );
+    evalpairs := subsets(pset, 2);
+    useful := {};
+    for p in evalpairs do (
+        rule := fusionRule(p#0, p#1, tbl);
+        if #rule < #evals then (
+            sets0 := select(pset, x -> isSubset(p#0, x) and x != p#0);
+            sets1 := select(pset, x -> isSubset(p#1, x) and x != p#1);
+            rules = apply(sets0, x -> fusionRule(x, p#1, tbl));
+            rules = rules | apply(sets1, x -> fusionRule(x, p#0, tbl));
+            if not member(rule, rules) then useful = append(useful, p/set);
+            );
         );
-    return evals;
+    useful
     )
 
 fusionRule = (set0, set1, tbl) -> (
@@ -95,29 +101,25 @@ fusion = {expand => true} >> opts -> algebra -> (
     else print "Performing fusion without expansion";
     algebra.temp = copy algebra.evecs;
     n := #(keys algebra.evecs);
-    for i to n - 1  do (
-        set0 := (keys algebra.evecs)#i;
-        for j in (i .. n - 1) do (
-            set1 := (keys algebra.evecs)#j;
-            rule := fusionRule(set0, set1, algebra.tbl);
-            if rule =!= set(algebra.evals) then (
-                for i to numgens source algebra.evecs#set0 - 1 do (
-                    for j to numgens source algebra.evecs#set1 - 1 do (
-                        if i < numgens source algebra.evecs#set0 and j < numgens source algebra.evecs#set1 then (
-                            u := (algebra.evecs#set0)_{i};
-                            v := (algebra.evecs#set1)_{j};
-                            if opts.expand then (
-                                unknowns := findUnknowns(u, v, algebra.products);
-                                expandAlgebra(algebra, unknowns);
-                                );
-                            prod := axialProduct(u, v, algebra.products);
-                            if prod =!= false then (
-                                if rule === set {} then quotientNullspace (algebra, prod)
-                                else (
-                                    for s in unique values algebra.tbl do(
-                                        if isSubset(rule, s) then (
-                                            algebra.temp#s = algebra.temp#s | prod;
-                                            );
+    for p in algebra.usefulpairs do (
+        rule := fusionRule(p#0, p#1, algebra.tbl);
+        if rule =!= set(algebra.evals) then (
+            for i to numgens source algebra.evecs#(p#0) - 1 do (
+                for j to numgens source algebra.evecs#(p#1) - 1 do (
+                    if i < numgens source algebra.evecs#(p#0) and j < numgens source algebra.evecs#(p#1) then (
+                        u := (algebra.evecs#(p#0))_{i};
+                        v := (algebra.evecs#(p#1))_{j};
+                        if opts.expand then (
+                            unknowns := findUnknowns(u, v, algebra.products);
+                            expandAlgebra(algebra, unknowns);
+                            );
+                        prod := axialProduct(u, v, algebra.products);
+                        if prod =!= false then (
+                            if rule === set {} then quotientNullspace (algebra, prod)
+                            else (
+                                for s in unique values algebra.tbl do(
+                                    if isSubset(rule, s) then (
+                                        algebra.temp#s = algebra.temp#s | prod;
                                         );
                                     );
                                 );
@@ -130,7 +132,6 @@ fusion = {expand => true} >> opts -> algebra -> (
         for ev in keys algebra.temp do algebra.evecs#ev = mingens(image algebra.temp#ev);
         remove(algebra, temp);
         performFlip algebra;
-        -- Implement intersect algorithm?
     )
 
 expandAlgebra = (algebra, unknowns) -> (
@@ -221,7 +222,7 @@ quotientNullPolynomials = algebra -> (
 findNullVectors = algebra -> (
     -- intersect distinct eigenspaces
     print "Finding null vectors";
-    for ev in algebra.evalpairs do (
+    for ev in select(algebra.usefulpairs, x -> (x#0)*(x#1) === set {}) do (
         za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
         quotientNullspace (algebra, za);
         );
@@ -521,8 +522,8 @@ mainLoop = algebra -> (
         );
     )
 
-dihedralAlgebra = { field => QQ, primitive => true } >> opts -> (evals, tbl) -> (
-    algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive);
+dihedralAlgebra = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
+    algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
     while howManyUnknowns algebra > 0 do (
         while true do (
             n := howManyUnknowns algebra;
