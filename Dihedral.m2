@@ -55,7 +55,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
     -- If we assume that the alg admits a form then x = y
     if opts.form and opts.primitive then algebra.polynomials = {algebra.field_0 - algebra.field_1}; -- pretty but not so efficient
     -- Build the full eigenspaces
-    for s in unique(values(tbl)) do (
+    for s in keys algebra.evecs do (
         if #(toList s) > 1 then (
             for ev in (toList s) do (
                 algebra.evecs#s = algebra.evecs#s|algebra.evecs#(set {ev});
@@ -69,7 +69,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
 
 usefulPairs = (evals, tbl) -> (
     pset := select( subsets evals, x -> #x != 0 and #x != #evals );
-    evalpairs := subsets(pset, 2);
+    evalpairs := toList((set pset)**(set pset))/toList;
     useful := {};
     for p in evalpairs do (
         rule := fusionRule(p#0, p#1, tbl);
@@ -117,7 +117,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                         if prod =!= false then (
                             if rule === set {} then quotientNullspace (algebra, prod)
                             else (
-                                for s in unique values algebra.tbl do(
+                                for s in keys algebra.temp do(
                                     if isSubset(rule, s) then (
                                         algebra.temp#s = algebra.temp#s | prod;
                                         );
@@ -227,6 +227,7 @@ findNullVectors = algebra -> (
         quotientNullspace (algebra, za);
         );
     performFlip algebra;
+    quotientAllPolyNullVecs algebra;
     )
 
 findFirstEigenvectors = (evals, field) -> (
@@ -286,12 +287,14 @@ quotientNullVec = (algebra, vec) -> (
     vec = entries vec;
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
-    if algebra.primitive and all(nonzero, i -> #support vec#i#0 > 0) then ( -- all poly mat
-        if all(nonzero, i -> i < 2) then (
+    k = last nonzero;
+    if algebra.primitive and #support vec#k#0 > 0 then ( -- all poly mat
+        if all(nonzero, i -> i < 3) then (
             print vec;
             polys := unique select(flatten vec, p -> #support p > 0);
-            polys = apply(polys, p -> sub(p, {r_0 => r_1, r_1 => r_0} ));
+            polys = polys | apply(polys, p -> sub(p, {r_0 => r_1, r_1 => r_0} ));
             algebra.polynomials = algebra.polynomials | polys;
+            print algebra.polynomials;
             quotientNullPolynomials algebra;
             return false;
             )
@@ -300,8 +303,8 @@ quotientNullVec = (algebra, vec) -> (
             return false;
             );
         );
-    if algebra.primitive then k := last select(nonzero, i -> #support vec#i#0 == 0)
-    else k = last nonzero;
+    --if algebra.primitive then k := last select(nonzero, i -> #support vec#i#0 == 0)
+    --else k = last nonzero;
     if k == 0 or k == 1 then error "Is the algebra zero?";
     vec = sub(matrix vec, algebra.field);
     if algebra.primitive then entry := sub(vec_(k,0), coefficientRing algebra.field)
@@ -318,11 +321,11 @@ quotientNullVec = (algebra, vec) -> (
                 if x#1 == k then v := prod
                 else v = standardAxialVector(x#1,n);
                 unknowns := findUnknowns(u, v, algebra.products);
-                if #unknowns > 0 then print "Expanding in quotient func";
+                if #unknowns > 0 then print ("Expanding in quotient func", i);
                 expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
-                quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
                 n = #algebra.span;
+                quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
                 vec = vec^(toList (0..n-1));
                 prod = prod^(toList (0..n-1));
                 );
