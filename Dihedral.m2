@@ -38,7 +38,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
     for i in 1..n-1 do algebra.products#i#0 = sub(standardAxialVector(i + 1, n + 1), algebra.field);
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
-    for ev in flatten algebra.usefulpairs do (
+    for ev in select( subsets evals, x -> #x != 0 and #x != n )/set do (
         algebra.evecs#ev = zeroAxialVector(n + 1);
         );
     evecs := findFirstEigenvectors(evals, algebra.field);
@@ -326,6 +326,7 @@ quotientNullVec = (algebra, vec) -> (
                 newProd := axialProduct(u, v, algebra.products);
                 n = #algebra.span;
                 quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
+                n = #algebra.span;
                 vec = vec^(toList (0..n-1));
                 prod = prod^(toList (0..n-1));
                 );
