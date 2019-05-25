@@ -78,10 +78,11 @@ usefulPairs = (evals, tbl) -> (
             sets1 := select(pset, x -> isSubset(p#1, x) and x != p#1);
             rules = apply(sets0, x -> fusionRule(x, p#1, tbl));
             rules = rules | apply(sets1, x -> fusionRule(x, p#0, tbl));
-            if not member(rule, rules) then useful = append(useful, p/set);
+            if not member(rule, rules) then useful = append(useful, set(p/set));
             );
         );
-    useful
+    useful = (unique useful)/toList;
+    return apply(useful, x -> if #x == 1 then {x#0, x#0} else x);
     )
 
 fusionRule = (set0, set1, tbl) -> (
@@ -100,12 +101,11 @@ fusion = {expand => true} >> opts -> algebra -> (
     if opts.expand == true then print "Performing fusion with expansion"
     else print "Performing fusion without expansion";
     algebra.temp = copy algebra.evecs;
-    n := #(keys algebra.evecs);
     for p in algebra.usefulpairs do (
         rule := fusionRule(p#0, p#1, algebra.tbl);
-        if rule =!= set(algebra.evals) then (
             for i to numgens source algebra.evecs#(p#0) - 1 do (
-                for j to numgens source algebra.evecs#(p#1) - 1 do (
+                if p#0 === p#1 then start := i else start = 0;
+                for j in (start .. numgens source algebra.evecs#(p#1) - 1) do (
                     if i < numgens source algebra.evecs#(p#0) and j < numgens source algebra.evecs#(p#1) then (
                         u := (algebra.evecs#(p#0))_{i};
                         v := (algebra.evecs#(p#1))_{j};
@@ -117,7 +117,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                         if prod =!= false then (
                             if rule === set {} then quotientNullspace (algebra, prod)
                             else (
-                                for s in keys algebra.temp do(
+                                for s in keys algebra.temp do (
                                     if isSubset(rule, s) then (
                                         algebra.temp#s = algebra.temp#s | prod;
                                         );
@@ -128,7 +128,6 @@ fusion = {expand => true} >> opts -> algebra -> (
                     );
                 );
             );
-        );
         for ev in keys algebra.temp do algebra.evecs#ev = mingens(image algebra.temp#ev);
         remove(algebra, temp);
         performFlip algebra;
@@ -158,6 +157,10 @@ expandAlgebra = (algebra, unknowns) -> (
             d = numgens source algebra.temp#ev;
             algebra.temp#ev = algebra.temp#ev || matrix( toList(k:toList(d:0)));
             );
+        );
+    if algebra#?nullspace then (
+        d = numgens source algebra.nullspace;
+        algebra.nullspace = algebra.nullspace || matrix( toList(k:toList(d:0)));
         );
     for i to k - 1 do (
         x := unknowns#i;
@@ -321,17 +324,27 @@ quotientNullVec = (algebra, vec) -> (
                 if x#1 == k then v := prod
                 else v = standardAxialVector(x#1,n);
                 unknowns := findUnknowns(u, v, algebra.products);
-                if #unknowns > 0 then print ("Expanding in quotient func", i);
+                --if #unknowns > 0 then print ("Expanding in quotient func", i, n);
+                if #unknowns > 0 then print unknowns;
+                if #unknowns > 0 then return false;
                 expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
                 n = #algebra.span;
                 quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
                 n = #algebra.span;
-                vec = vec^(toList (0..n-1));
-                prod = prod^(toList (0..n-1));
+                d := n - numgens target vec;
+                if d < 0 then (
+                    vec = vec^(toList (0..n-1));
+                    prod = prod^(toList (0..n-1));
+                    )
+                else if d > 0 then (
+                    vec = vec || matrix(toList(d:{0}));
+                    prod = prod || matrix(toList(d:{0}));
+                    );
                 );
             );
         );
+    k = last nonzero;
     algebra.span = apply(algebra.span, x -> reduceSpanningVec(x, k));
     reduction := toList drop(0..n - 1,{k,k});
     algebra.products = drop(algebra.products,{k,k});
@@ -514,6 +527,7 @@ howManyUnknowns = algebra -> (
 mainLoop = algebra -> (
     while true do (
         m := howManyUnknowns algebra;
+        fusion(algebra, expand => false);
         while true do (
             n := howManyUnknowns algebra;
             findNullVectors algebra;
@@ -521,7 +535,6 @@ mainLoop = algebra -> (
             print (n, howManyUnknowns algebra);
             if howManyUnknowns algebra == n then break;
             );
-        fusion(algebra, expand => false);
         if howManyUnknowns algebra == m then return;
         );
     )
@@ -531,7 +544,7 @@ dihedralAlgebra = { field => QQ, primitive => true, form => true } >> opts -> (e
     while howManyUnknowns algebra > 0 do (
         while true do (
             n := howManyUnknowns algebra;
-            findNewEigenvectors algebra;
+            --findNewEigenvectors algebra;
             mainLoop algebra;
             if howManyUnknowns algebra == n then break;
             );
