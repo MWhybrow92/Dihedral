@@ -278,13 +278,12 @@ quotientNullspace = (algebra, mat) -> (
             );
         );
     algebra.nullspace = mingens image algebra.nullspace;
-    d := numgens image algebra.nullspace;
+    d = numgens image algebra.nullspace;
     for i to d - 1 do (
         v := flipVector(algebra.nullspace_{i}, algebra);
         if v =!= false then algebra.nullspace = algebra.nullspace | v;
         );
     algebra.nullspace = mingens image algebra.nullspace;
-    print ("Nullspace:", numgens image algebra.nullspace, d);
     for j in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
         quotientNullVec(algebra, algebra.nullspace_{j});
         );
@@ -300,11 +299,9 @@ quotientNullVec = (algebra, vec) -> (
     k = last nonzero;
     if algebra.primitive and #support vec#k#0 > 0 then ( -- all poly mat
         if all(nonzero, i -> i < 3) then (
-            print vec;
             polys := unique select(flatten vec, p -> #support p > 0);
             polys = polys | apply(polys, p -> sub(p, {r_0 => r_1, r_1 => r_0} ));
             algebra.polynomials = algebra.polynomials | polys;
-            print algebra.polynomials;
             quotientNullPolynomials algebra;
             return false;
             )
@@ -542,23 +539,25 @@ mainLoop = algebra -> (
             findNullVectors algebra;
             findNewEigenvectors(algebra, expand => false);
             print (n, howManyUnknowns algebra);
-            if howManyUnknowns algebra == n then break;
+            if member(howManyUnknowns algebra, {0,n}) then break;
             );
-        if howManyUnknowns algebra == m then return;
+        if member(howManyUnknowns algebra, {0,m}) then break;
         );
     )
 
 dihedralAlgebra = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
     algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
     while howManyUnknowns algebra > 0 do (
+        t1 := cpuTime();
         while true do (
             n := howManyUnknowns algebra;
             --findNewEigenvectors algebra;
             mainLoop algebra;
-            if howManyUnknowns algebra == n then break;
+            if member(howManyUnknowns algebra, {0,n}) then break;
             );
         fusion algebra;
         mainLoop algebra;
+        print( "Time taken:", cpuTime() - t1 );
         );
     return algebra;
     )
