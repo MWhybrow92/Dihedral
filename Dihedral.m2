@@ -63,7 +63,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
                 );
             );
         );
-    performFlip algebra;
+    --performFlip algebra;
     algebra
     )
 
@@ -130,7 +130,7 @@ fusion = {expand => true} >> opts -> algebra -> (
             );
         for ev in keys algebra.temp do algebra.evecs#ev = mingens(image algebra.temp#ev);
         remove(algebra, temp);
-        performFlip algebra;
+        --performFlip algebra;
     )
 
 expandAlgebra = (algebra, unknowns) -> (
@@ -196,7 +196,7 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                 );
             );
     for s in keys algebra.evecs do algebra.evecs#s = mingens image algebra.evecs#s;
-    performFlip algebra;
+    --performFlip algebra;
     )
 
 quotientNullPolynomials = algebra -> (
@@ -229,7 +229,7 @@ findNullVectors = algebra -> (
         za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
         quotientNullspace (algebra, za);
         );
-    performFlip algebra;
+    --performFlip algebra;
     quotientAllPolyNullVecs algebra;
     )
 
@@ -278,6 +278,13 @@ quotientNullspace = (algebra, mat) -> (
             );
         );
     algebra.nullspace = mingens image algebra.nullspace;
+    d := numgens image algebra.nullspace;
+    for i to d - 1 do (
+        v := flipVector(algebra.nullspace_{i}, algebra);
+        if v =!= false then algebra.nullspace = algebra.nullspace | v;
+        );
+    algebra.nullspace = mingens image algebra.nullspace;
+    print ("Nullspace:", numgens image algebra.nullspace, d);
     for j in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
         quotientNullVec(algebra, algebra.nullspace_{j});
         );
@@ -485,7 +492,9 @@ performFlip = algebra -> (
             if i < #algebra.products and j < #algebra.products then (
                 f := findFlip algebra;
                 im := f_{i,j};
-                if not member(null, im) and algebra.products#i#j =!= false then (
+                --if not member(null, im) and algebra.products#i#j =!= false then (
+                if algebra.products#i#j =!= false then (
+                    if member(null, im) then error "Can't perform flip";
                     vec := flipVector(algebra.products#i#j, algebra);
                     if vec =!= false then (
                         if algebra.products#(im#0)#(im#1) === false then (
