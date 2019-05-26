@@ -548,6 +548,7 @@ howManyUnknowns = algebra -> (
 mainLoop = algebra -> (
     while true do (
         m := howManyUnknowns algebra;
+        fusion(algebra, expand => false);
         while true do (
             n := howManyUnknowns algebra;
             findNullVectors algebra;
@@ -555,7 +556,6 @@ mainLoop = algebra -> (
             print (n, howManyUnknowns algebra);
             if member(howManyUnknowns algebra, {0,n}) then break;
             );
-        fusion(algebra, expand => false);
         if member(howManyUnknowns algebra, {0,m}) then break;
         );
     )
@@ -564,6 +564,12 @@ dihedralAlgebra = { field => QQ, primitive => true, form => true } >> opts -> (e
     algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
     while howManyUnknowns algebra > 0 do (
         t1 := cpuTime();
+        while true do (
+            n := howManyUnknowns algebra;
+            findNewEigenvectors algebra;
+            mainLoop algebra;
+            if member(howManyUnknowns algebra, {0,n}) then break;
+            );
         fusion algebra;
         mainLoop algebra;
         print( "Time taken:", cpuTime() - t1 );
