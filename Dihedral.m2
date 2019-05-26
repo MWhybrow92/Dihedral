@@ -114,16 +114,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                             expandAlgebra(algebra, unknowns);
                             );
                         prod := axialProduct(u, v, algebra.products);
-                        if prod =!= false then (
-                            if rule === set {} then quotientNullspace (algebra, prod)
-                            else (
-                                for s in keys algebra.temp do (
-                                    if isSubset(rule, s) then (
-                                        algebra.temp#s = algebra.temp#s | prod;
-                                        );
-                                    );
-                                );
-                            );
+                        if prod =!= false and prod != 0 then recordEvec(prod, rule, algebra);
                         );
                     );
                 );
@@ -131,6 +122,30 @@ fusion = {expand => true} >> opts -> algebra -> (
         for ev in keys algebra.temp do algebra.evecs#ev = mingens(image algebra.temp#ev);
         remove(algebra, temp);
         --performFlip algebra;
+    )
+
+recordEvec = (v, rule, algebra) -> (
+    if rule === set {} then quotientNullspace (algebra, v)
+    else (
+        for s in keys algebra.temp do (
+            if rule*s === set {} then (
+                z := mingens intersect(image v, image algebra.temp#s);
+                if z != 0 then (
+                    quotientNullspace (algebra, z);
+                    return;
+                    )
+                )
+            else if isSubset(rule, s) then (
+                algebra.temp#s = algebra.temp#s | v;
+                )
+            else (
+                z = mingens intersect(image v, image algebra.temp#s);
+                if z != 0 then (
+                    algebra.temp#(s*rule) = algebra.temp#(s*rule) | z;
+                    )
+                );
+            );
+        );
     )
 
 expandAlgebra = (algebra, unknowns) -> (
