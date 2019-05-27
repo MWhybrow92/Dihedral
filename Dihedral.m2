@@ -321,7 +321,7 @@ quotientNullVec = (algebra, vec) -> (
             return false;
             )
         else (
-            algebra.allpolynullvecs = algebra.allpolynullvecs | matrix(algebra.field, vec);
+            algebra.allpolynullvecs = mingens image(algebra.allpolynullvecs | matrix(algebra.field, vec));
             return false;
             );
         );
