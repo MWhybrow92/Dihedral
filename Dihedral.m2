@@ -238,14 +238,19 @@ quotientNullPolynomials = algebra -> (
     )
 
 findNullVectors = algebra -> (
-    -- intersect distinct eigenspaces
-    print "Finding null vectors";
-    for ev in select(algebra.usefulpairs, x -> (x#0)*(x#1) === set {}) do (
-        za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
-        quotientNullspace (algebra, za);
+    while true do (
+        n := howManyUnknowns algebra;
+        findNewEigenvectors(algebra, expand => false);
+        -- intersect distinct eigenspaces
+        print "Finding null vectors";
+        for ev in select(algebra.usefulpairs, x -> (x#0)*(x#1) === set {}) do (
+            za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
+            quotientNullspace (algebra, za);
+            );
+        --performFlip algebra;
+        quotientAllPolyNullVecs algebra;
+        if member(howManyUnknowns algebra, {0,n}) then return;
         );
-    --performFlip algebra;
-    quotientAllPolyNullVecs algebra;
     )
 
 findFirstEigenvectors = (evals, field) -> (
@@ -318,6 +323,7 @@ quotientNullVec = (algebra, vec) -> (
             polys = polys | apply(polys, p -> sub(p, {r_0 => r_1, r_1 => r_0} ));
             algebra.polynomials = algebra.polynomials | polys;
             quotientNullPolynomials algebra;
+            --if any(algebra.polynomials, x -> #support(x) == 1) then error"";
             return false;
             )
         else (
@@ -547,16 +553,11 @@ howManyUnknowns = algebra -> (
 
 mainLoop = algebra -> (
     while true do (
-        m := howManyUnknowns algebra;
+        n := howManyUnknowns algebra;
+        findNullVectors algebra;
         fusion(algebra, expand => false);
-        while true do (
-            n := howManyUnknowns algebra;
-            findNewEigenvectors(algebra, expand => false);
-            findNullVectors algebra;
-            print (n, howManyUnknowns algebra);
-            if member(howManyUnknowns algebra, {0,n}) then break;
-            );
-        if member(howManyUnknowns algebra, {0,m}) then break;
+        print (n, howManyUnknowns algebra);
+        if member(howManyUnknowns algebra, {0,n}) then return;
         );
     )
 
