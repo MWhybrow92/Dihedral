@@ -551,8 +551,8 @@ mainLoop = algebra -> (
         fusion(algebra, expand => false);
         while true do (
             n := howManyUnknowns algebra;
-            findNullVectors algebra;
             findNewEigenvectors(algebra, expand => false);
+            findNullVectors algebra;
             print (n, howManyUnknowns algebra);
             if member(howManyUnknowns algebra, {0,n}) then break;
             );
