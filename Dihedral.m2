@@ -218,7 +218,6 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
     )
 
 quotientNullPolynomials = algebra -> (
-    algebra.polynomials = flatten entries groebnerBasis ideal algebra.polynomials;
     if #algebra.polynomials == 0 then return;
     I := ideal algebra.polynomials;
     for i to #algebra.products - 1 do (
@@ -323,9 +322,12 @@ quotientNullVec = (algebra, vec) -> (
     if algebra.primitive and #support vec#k#0 > 0 then ( -- all poly mat
         if all(nonzero, i -> i < 3) then (
             polys := unique select(flatten vec, p -> #support p > 0);
-            polys = polys | apply(polys, p -> sub(p, {r_0 => r_1, r_1 => r_0} ));
-            algebra.polynomials = algebra.polynomials | polys;
-            quotientNullPolynomials algebra;
+            polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
+            if #polys > #algebra.polynomials then (
+                print vec_{0,1,2};
+                algebra.polynomials = polys;
+                quotientNullPolynomials algebra;
+                );
             --if any(algebra.polynomials, x -> #support(x) == 1) then error"";
             return false;
             )
