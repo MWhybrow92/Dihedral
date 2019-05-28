@@ -53,7 +53,10 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
         )
     else algebra.evecs#(set {1}) = algebra.evecs#(set {1})|standardAxialVector(0, n + 1);
     -- If we assume that the alg admits a form then x = y
-    if opts.form and opts.primitive then algebra.polynomials = {algebra.field_0 - algebra.field_1}; -- pretty but not so efficient
+    if opts.form and opts.primitive then (
+        algebra.polynomials = {algebra.field_0 - algebra.field_1}; -- pretty but not so efficient
+        quotientNullPolynomials algebra;
+        );
     -- Build the full eigenspaces
     for s in keys algebra.evecs do (
         if #(toList s) > 1 then (
