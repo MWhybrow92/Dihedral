@@ -600,13 +600,13 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
         if any(algebra.polynomials, x -> #support(x) == 1) then break;
         print( "Time taken:", cpuTime() - t1 );
         );
-    if howManyUnknowns algebra == 0 then return algebra;
+    --if howManyUnknowns algebra == 0 then return algebra;
     algebras = {};
     p := (select(algebra.polynomials, x -> #support(x) == 1))#0;
     y := (support(p))#0;
-    r = coefficientRing(algebra.field)[y];
+    r := coefficientRing(algebra.field)[y];
     p = sub(p, r);
-    vals := roots p;
+    vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
     for x in vals do (
         print x;
         newalgebra = copy algebra;
