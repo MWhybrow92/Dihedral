@@ -122,7 +122,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                     );
                 );
             );
-        for ev in keys algebra.temp do algebra.evecs#ev = mingens(image algebra.temp#ev);
+        for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
         remove(algebra, temp);
         --performFlip algebra;
     )
@@ -139,7 +139,7 @@ recordEvec = (v, rule, algebra) -> (
                     )
                 )
             else if isSubset(rule, s) then (
-                algebra.temp#s = algebra.temp#s | v;
+                algebra.temp#s = mingens image(algebra.temp#s | v);
                 --)
             -- else (
                 --z = mingens intersect(image v, image algebra.temp#s);
