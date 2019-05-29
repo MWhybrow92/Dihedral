@@ -25,7 +25,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
     algebra.polynomials = {};
-    algebra.allpolynullvecs = sub( zeroAxialVector (n + 1), algebra.field );
+    --algebra.allpolynullvecs = sub( zeroAxialVector (n + 1), algebra.field );
     algebra.span = {0,1} | apply(toList(1..n-1), x -> {0,x});
     -- Add products as list of lists
     algebra.products = new MutableList from {};
@@ -168,8 +168,8 @@ expandAlgebra = (algebra, unknowns) -> (
         d := numgens source algebra.evecs#ev;
         algebra.evecs#ev = algebra.evecs#ev || matrix( toList(k:toList(d:0)));
         );
-    d = numgens source algebra.allpolynullvecs;
-    algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( toList(k:toList(d:0)));
+    --d = numgens source algebra.allpolynullvecs;
+    --algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( toList(k:toList(d:0)));
     if algebra#?temp then (
         for ev in keys algebra.temp do (
             d = numgens source algebra.temp#ev;
@@ -236,7 +236,7 @@ quotientNullPolynomials = algebra -> (
             );
         );
     if algebra#?nullspace then algebra.nullspace = algebra.nullspace % I;
-    algebra.allpolynullvecs = algebra.allpolynullvecs % I;
+    --algebra.allpolynullvecs = algebra.allpolynullvecs % I;
     )
 
 findNullVectors = algebra -> (
@@ -250,7 +250,7 @@ findNullVectors = algebra -> (
             quotientNullspace (algebra, za);
             );
         --performFlip algebra;
-        quotientAllPolyNullVecs algebra;
+        --quotientAllPolyNullVecs algebra;
         if member(howManyUnknowns algebra, {0,n}) then return;
         );
     )
@@ -332,7 +332,7 @@ quotientNullVec = (algebra, vec) -> (
             return false;
             )
         else (
-            algebra.allpolynullvecs = mingens image(algebra.allpolynullvecs | matrix(algebra.field, vec));
+            --algebra.allpolynullvecs = mingens image(algebra.allpolynullvecs | matrix(algebra.field, vec));
             return false;
             );
         );
@@ -396,9 +396,9 @@ quotientNullVec = (algebra, vec) -> (
             algebra.temp#ev = mingens( image algebra.temp#ev);
             );
         );
-    if algebra#?allpolynullvecs then (
-        algebra.allpolynullvecs = (reduce(algebra.allpolynullvecs, vec, k))^reduction;
-        );
+    --if algebra#?allpolynullvecs then (
+    --    algebra.allpolynullvecs = (reduce(algebra.allpolynullvecs, vec, k))^reduction;
+    --    );
     if algebra#?nullspace then (
         algebra.nullspace = (reduce(algebra.nullspace, vec, k))^reduction;
         );
