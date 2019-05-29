@@ -241,17 +241,22 @@ quotientNullPolynomials = algebra -> (
 
 findNullVectors = algebra -> (
     while true do (
-        n := howManyUnknowns algebra;
-        findNewEigenvectors(algebra, expand => false);
-        -- intersect distinct eigenspaces
-        print "Finding null vectors";
-        for ev in select(algebra.usefulpairs, x -> (x#0)*(x#1) === set {}) do (
-            za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
-            quotientNullspace (algebra, za);
+        m := howManyUnknowns algebra;
+        while true do (
+            n := howManyUnknowns algebra;
+            findNewEigenvectors(algebra, expand => false);
+            -- intersect distinct eigenspaces
+            print "Finding null vectors";
+            for ev in select(algebra.usefulpairs, x -> (x#0)*(x#1) === set {}) do (
+                za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
+                quotientNullspace (algebra, za);
+                );
+            --performFlip algebra;
+            quotientAllPolyNullVecs algebra;
+            if member(howManyUnknowns algebra, {0,n}) then break;
             );
-        --performFlip algebra;
-        quotientAllPolyNullVecs algebra;
-        if member(howManyUnknowns algebra, {0,n}) then return;
+        fusion(algebra, expand => false);
+        if member(howManyUnknowns algebra, {0,m}) then return;
         );
     )
 
@@ -560,25 +565,56 @@ mainLoop = algebra -> (
     while true do (
         n := howManyUnknowns algebra;
         findNullVectors algebra;
-        fusion(algebra, expand => false);
-        print (n, howManyUnknowns algebra);
+
         if member(howManyUnknowns algebra, {0,n}) then return;
         );
     )
 
-dihedralAlgebra = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
+mainLoop = algebra -> (
+    while true do (
+        n := howManyUnknowns algebra;
+        findNewEigenvectors algebra;
+        findNullVectors algebra;
+        print (n, howManyUnknowns algebra);
+        if member(howManyUnknowns algebra, {0,n}) then break;
+        );
+    fusion algebra;
+    findNullVectors algebra;
+    )
+
+universalDihedralAlgebra = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
     algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
     while howManyUnknowns algebra > 0 do (
         t1 := cpuTime();
-        while true do (
-            n := howManyUnknowns algebra;
-            findNewEigenvectors algebra;
-            mainLoop algebra;
-            if member(howManyUnknowns algebra, {0,n}) then break;
-            );
-        fusion algebra;
         mainLoop algebra;
         print( "Time taken:", cpuTime() - t1 );
         );
     return algebra;
+    )
+
+dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
+    algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
+    while howManyUnknowns algebra > 0 do (
+        t1 := cpuTime();
+        mainLoop algebra;
+        if any(algebra.polynomials, x -> #support(x) == 1) then break;
+        print( "Time taken:", cpuTime() - t1 );
+        );
+    if howManyUnknowns algebra == 0 then return algebra;
+    algebras = {};
+    p := (select(algebra.polynomials, x -> #support(x) == 1))#0;
+    y := (support(p))#0;
+    r = coefficientRing(algebra.field)[y];
+    p = sub(p, r);
+    vals := roots p;
+    for x in vals do (
+        print x;
+        newalgebra = copy algebra;
+        newalgebra.polynomials = { y - x };
+        quotientNullPolynomials newalgebra;
+        while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
+        algebras = append(algebra, newalgebra);
+        print "Found new algebra";
+        );
+    return algebras;
     )
