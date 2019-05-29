@@ -141,11 +141,11 @@ recordEvec = (v, rule, algebra) -> (
             else if isSubset(rule, s) then (
                 algebra.temp#s = mingens image(algebra.temp#s | v);
                 --)
-            -- else (
-                --z = mingens intersect(image v, image algebra.temp#s);
-                --if z != 0 then (
-                --    algebra.temp#(s*rule) = algebra.temp#(s*rule) | z;
-                --    )
+            else (
+                z = mingens intersect(image v, image algebra.temp#s);
+                if z != 0 then (
+                    algebra.temp#(s*rule) = mingens image (algebra.temp#(s*rule) | z);
+                    )
                 );
             );
         );
