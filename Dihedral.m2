@@ -604,7 +604,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
     r := coefficientRing(algebra.field)[y];
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
-    for x in vals do (
+    for x in select(vals, x -> x != 0) do (
         newalgebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
         changeRingOfAlgebra(newalgebra, algebra.field);
         newalgebra.polynomials = append(newalgebra.polynomials, y - x);
