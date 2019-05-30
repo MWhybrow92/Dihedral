@@ -577,9 +577,11 @@ mainLoop = algebra -> (
         findNullVectors algebra;
         print (n, howManyUnknowns algebra);
         if member(howManyUnknowns algebra, {0,n}) then break;
+        if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
         );
     fusion algebra;
     findNullVectors algebra;
+    if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
     )
 
 universalDihedralAlgebra = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
@@ -594,6 +596,7 @@ universalDihedralAlgebra = { field => QQ, primitive => true, form => true } >> o
 
 dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
     algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
+    algebra.polys = true;
     while howManyUnknowns algebra > 0 do (
         t1 := cpuTime();
         mainLoop algebra;
@@ -601,19 +604,22 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
         print( "Time taken:", cpuTime() - t1 );
         );
     --if howManyUnknowns algebra == 0 then return algebra;
-    algebras = {};
+    algebras := {};
     p := (select(algebra.polynomials, x -> #support(x) == 1))#0;
     y := (support(p))#0;
     r := coefficientRing(algebra.field)[y];
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
+    algebra = new HashTable from algebra;
     for x in vals do (
         print x;
-        newalgebra = copy algebra;
+        print peek algebra.products#2;
+        newalgebra := new MutableHashTable from algebra;
         newalgebra.polynomials = { y - x };
         quotientNullPolynomials newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
-        algebras = append(algebra, newalgebra);
+        error "";
+        algebras = append(algebras, newalgebra);
         print "Found new algebra";
         );
     return algebras;
