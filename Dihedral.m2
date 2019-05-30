@@ -25,7 +25,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
     algebra.field = opts.field;
     algebra.primitive = opts.primitive;
     algebra.polynomials = {};
-    algebra.allpolynullvecs = sub( zeroAxialVector (n + 1), algebra.field );
+    --algebra.allpolynullvecs = sub( zeroAxialVector (n + 1), algebra.field );
     algebra.span = {0,1} | apply(toList(1..n-1), x -> {0,x});
     -- Add products as list of lists
     algebra.products = new MutableList from {};
@@ -168,8 +168,8 @@ expandAlgebra = (algebra, unknowns) -> (
         d := numgens source algebra.evecs#ev;
         algebra.evecs#ev = algebra.evecs#ev || matrix( toList(k:toList(d:0)));
         );
-    d = numgens source algebra.allpolynullvecs;
-    algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( toList(k:toList(d:0)));
+    --d = numgens source algebra.allpolynullvecs;
+    --algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( toList(k:toList(d:0)));
     if algebra#?temp then (
         for ev in keys algebra.temp do (
             d = numgens source algebra.temp#ev;
@@ -199,6 +199,7 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                 if opts.expand then (
                     unknowns := findUnknowns(a, u, algebra.products);
                     expandAlgebra(algebra, unknowns);
+                    a = sub(standardAxialVector(0, #algebra.span), algebra.field);
                     u = algebra.evecs#s_{i};
                     );
                 prod := axialProduct(a, u, algebra.products);
@@ -236,7 +237,7 @@ quotientNullPolynomials = algebra -> (
             );
         );
     if algebra#?nullspace then algebra.nullspace = algebra.nullspace % I;
-    algebra.allpolynullvecs = algebra.allpolynullvecs % I;
+    --algebra.allpolynullvecs = algebra.allpolynullvecs % I;
     )
 
 findNullVectors = algebra -> (
@@ -250,7 +251,7 @@ findNullVectors = algebra -> (
             quotientNullspace (algebra, za);
             );
         --performFlip algebra;
-        quotientAllPolyNullVecs algebra;
+        --quotientAllPolyNullVecs algebra;
         if member(howManyUnknowns algebra, {0,n}) then return;
         );
     )
@@ -332,7 +333,7 @@ quotientNullVec = (algebra, vec) -> (
             return false;
             )
         else (
-            algebra.allpolynullvecs = mingens image(algebra.allpolynullvecs | matrix(algebra.field, vec));
+            --algebra.allpolynullvecs = mingens image(algebra.allpolynullvecs | matrix(algebra.field, vec));
             return false;
             );
         );
@@ -354,9 +355,9 @@ quotientNullVec = (algebra, vec) -> (
                 if x#1 == k then v := prod
                 else v = standardAxialVector(x#1,n);
                 unknowns := findUnknowns(u, v, algebra.products);
-                --if #unknowns > 0 then print ("Expanding in quotient func", i, n);
-                if #unknowns > 0 then print unknowns;
-                if #unknowns > 0 then return false;
+                if #unknowns > 0 then print ("Expanding in quotient func", i, n);
+                --if #unknowns > 0 then print unknowns;
+                --if #unknowns > 0 then return false;
                 expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
                 n = #algebra.span;
@@ -396,9 +397,9 @@ quotientNullVec = (algebra, vec) -> (
             algebra.temp#ev = mingens( image algebra.temp#ev);
             );
         );
-    if algebra#?allpolynullvecs then (
-        algebra.allpolynullvecs = (reduce(algebra.allpolynullvecs, vec, k))^reduction;
-        );
+    --if algebra#?allpolynullvecs then (
+    --    algebra.allpolynullvecs = (reduce(algebra.allpolynullvecs, vec, k))^reduction;
+    --    );
     if algebra#?nullspace then (
         algebra.nullspace = (reduce(algebra.nullspace, vec, k))^reduction;
         );
@@ -421,13 +422,12 @@ reduce = (u, v, k) -> u - v*u^{k}
 
 findUnknowns = (u, v, products) -> (
     unknowns := {};
-    for i to numgens target u - 1 do (
-        if u_(i,0) != 0 then (
-            for j to numgens target v - 1 do (
-                if v_(j,0) != 0 then (
-                    if products#i#j === false then (
-                        unknowns = append(unknowns, sort {i,j});
-                        );
+    n := numgens target u - 1;
+    for i to n do (
+        for j in toList(i..n) do (
+            if (u_(i,0))*(v_(j,0)) + (u_(j,0))*(v_(i,0)) != 0 then (
+                if products#i#j === false then (
+                    unknowns = append(unknowns, {i,j});
                     );
                 );
             );
@@ -437,13 +437,16 @@ findUnknowns = (u, v, products) -> (
 
 axialProduct = (u, v, products) -> (
     l := {};
-    for i to numgens target u - 1 do (
-        if u_(i,0) != 0 then (
-            for j to numgens target v - 1 do (
-                if v_(j,0) != 0 then (
-                    if products#i#j === false then return false;
-                    l = append( l, (u_(i,0))*(v_(j,0))*products#i#j );
-                    );
+    n := numgens (target u) - 1;
+    for i in reverse(toList(0..n)) do (
+        p := u_(i,0)*v_(i,0);
+        if p!= 0 then (
+            if products#i#i =!= false then l = append(l, p*products#i#i) else return false;
+            );
+        for j in reverse(toList(i+1..n)) do (
+            p = (u_(i,0))*(v_(j,0)) + (u_(j,0))*(v_(i,0));
+            if p != 0 then (
+                if products#i#j =!= false then l = append(l, p*products#i#j) else return false;
                 );
             );
         );
