@@ -279,6 +279,8 @@ changeRingOfAlgebra = (algebra, r) -> (
     );
     -- Change the eigenvectors
     for ev in keys algebra.evecs do algebra.evecs#ev = sub(algebra.evecs#ev, r);
+    -- Change the polynomials
+    algebra.polynomials = apply(algebra.polynomials, x -> sub(x, r));
     )
 
 reduceSpanningVec = (vec, k) -> (
@@ -605,7 +607,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
     for x in vals do (
         newalgebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
         changeRingOfAlgebra(newalgebra, algebra.field);
-        newalgebra.polynomials = { y - x };
+        newalgebra.polynomials = append(newalgebra.polynomials, y - x);
         quotientNullPolynomials newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
         algebras = append(algebras, newalgebra);
