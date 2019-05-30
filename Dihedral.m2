@@ -356,8 +356,8 @@ quotientNullVec = (algebra, vec) -> (
                 else v = standardAxialVector(x#1,n);
                 unknowns := findUnknowns(u, v, algebra.products);
                 if #unknowns > 0 then print ("Expanding in quotient func", i, n);
-                --if #unknowns > 0 then print unknowns;
-                --if #unknowns > 0 then return false;
+                if #unknowns > 0 then print unknowns;
+                if #unknowns > 0 then return false;
                 expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
                 n = #algebra.span;
