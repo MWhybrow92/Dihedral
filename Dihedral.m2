@@ -140,7 +140,7 @@ recordEvec = (v, rule, algebra) -> (
                 )
             else if isSubset(rule, s) then (
                 algebra.temp#s = mingens image(algebra.temp#s | v);
-                --)
+                )
             else (
                 z = mingens intersect(image v, image algebra.temp#s);
                 if z != 0 then (
@@ -423,11 +423,14 @@ reduce = (u, v, k) -> u - v*u^{k}
 findUnknowns = (u, v, products) -> (
     unknowns := {};
     n := numgens target u - 1;
+    m := numgens target v - 1;
     for i to n do (
-        for j in toList(i..n) do (
-            if (u_(i,0))*(v_(j,0)) + (u_(j,0))*(v_(i,0)) != 0 then (
-                if products#i#j === false then (
-                    unknowns = append(unknowns, {i,j});
+        if u_(i,0) != 0 then (
+            for j to m do (
+                if v_(j,0) != 0 then (
+                    if products#i#j === false then (
+                        unknowns = append(unknowns, sort {i,j});
+                        );
                     );
                 );
             );
@@ -438,15 +441,14 @@ findUnknowns = (u, v, products) -> (
 axialProduct = (u, v, products) -> (
     l := {};
     n := numgens (target u) - 1;
+    m := numgens (target u) - 1;
     for i in reverse(toList(0..n)) do (
-        p := u_(i,0)*v_(i,0);
-        if p!= 0 then (
-            if products#i#i =!= false then l = append(l, p*products#i#i) else return false;
-            );
-        for j in reverse(toList(i+1..n)) do (
-            p = (u_(i,0))*(v_(j,0)) + (u_(j,0))*(v_(i,0));
-            if p != 0 then (
-                if products#i#j =!= false then l = append(l, p*products#i#j) else return false;
+        if u_(i,0) != 0 then (
+            for j in reverse(toList(0..m)) do (
+                if v_(j,0) != 0 then (
+                    if products#i#j === false then return false;
+                    l = append(l, (u_(i,0))*(v_(j,0))*products#i#j);
+                    );
                 );
             );
         );
