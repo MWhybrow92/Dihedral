@@ -119,6 +119,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                             );
                         prod := axialProduct(u, v, algebra.products);
                         if prod =!= false and prod != 0 then recordEvec(prod, rule, algebra);
+                        if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
                         );
                     );
                 );
@@ -342,7 +343,13 @@ quotientNullVec = (algebra, vec) -> (
         );
     --if algebra.primitive then k := last select(nonzero, i -> #support vec#i#0 == 0)
     --else k = last nonzero;
-    if k == 0 or k == 1 then print "Is the algebra zero?";
+    if k == 0 or k == 1 then ( -- algebra is zero
+        algebra.span = {};
+        algebra.products = new MutableList from {};
+        algebra.nullspace = matrix 0;
+        for ev in keys algebra.evecs do algebra.evecs#ev = matrix 0;
+        return;
+        );
     vec = sub(matrix vec, algebra.field);
     if algebra.primitive then entry := sub(vec_(k,0), coefficientRing algebra.field)
     else entry = vec_(k,0);
@@ -574,6 +581,7 @@ mainLoop = algebra -> (
         if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
         );
     fusion algebra;
+    if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
     findNullVectors algebra;
     if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
     )
@@ -605,6 +613,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
     for x in select(vals, x -> x != 0) do (
+        print ("Using value", x);
         newalgebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
         changeRingOfAlgebra(newalgebra, algebra.field);
         newalgebra.polynomials = append(newalgebra.polynomials, y - x);

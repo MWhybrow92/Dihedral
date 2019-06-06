@@ -9,4 +9,4 @@ load "Dihedral.m2";
 
 tbl = MonsterTable (1/4, 1/32);
 evals = {1, 0, 1/4, 1/32};
-algebra = dihedralAlgebra (evals, tbl);
+algebra = dihedralAlgebras (evals, tbl);
