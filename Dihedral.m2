@@ -47,7 +47,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
     -- If we assume primitivity then change the field to a polynomial ring
     if algebra.primitive then (
         changeRingOfAlgebra(algebra, algebra.field[symbol x, symbol y]);
-        vec := algebra.evecs#(set {1}) - x*sub(standardAxialVector(0,n + 1), ring(x));
+        vec := algebra.evecs#(set {1})_{1} - x*sub(standardAxialVector(0,n + 1), ring(x));
         quotientNullspace (algebra, vec);
         n = #algebra.span;
         algebra.evecs#(set {1}) = sub(standardAxialVector(0, n), algebra.field);
@@ -356,6 +356,7 @@ quotientNullVec = (algebra, vec) -> (
     n := #algebra.span;
     prod := standardAxialVector(k,n) - vec*(sub(1/entry, algebra.field));
     vec = vec*sub(1/entry, algebra.field);
+    z := zeroAxialVector n;
     for i in k+1 .. n-1 do (
         if i < #algebra.span then (
             x := algebra.span#i;
@@ -365,27 +366,33 @@ quotientNullVec = (algebra, vec) -> (
                 if x#1 == k then v := prod
                 else v = standardAxialVector(x#1,n);
                 unknowns := findUnknowns(u, v, algebra.products);
-                if #unknowns > 0 then print ("Expanding in quotient func", i, n);
-                if #unknowns > 0 then print unknowns;
+                --if #unknowns > 0 then print ("Expanding in quotient func", i, n);
+                --if #unknowns > 0 then print unknowns;
                 if #unknowns > 0 then return false;
-                expandAlgebra(algebra, unknowns);
+                --expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
-                n = #algebra.span;
-                quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
-                n = #algebra.span;
-                d := n - numgens target vec;
-                if d < 0 then (
-                    vec = vec^(toList (0..n-1));
-                    prod = prod^(toList (0..n-1));
-                    )
-                else if d > 0 then (
-                    vec = vec || matrix(toList(d:{0}));
-                    prod = prod || matrix(toList(d:{0}));
-                    );
+                --n = #algebra.span;
+                --if algebra#?one and #algebra.span == 9 then error "";
+                --quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
+                z = z | (standardAxialVector(i,n) - newProd);
                 );
             );
         );
-    k = last nonzero;
+    if z != 0 then (
+        z = mingens image z;
+        d := numgens image z;
+        for i in reverse (0 .. d-1) do (
+            print i;
+            n = #algebra.span;
+            quotientNullVec(algebra, z_{i}^(toList(0..n-1)));
+            );
+        );
+    n = #algebra.span;
+    if k > n - 1 then return;
+    d = n - numgens target vec;
+    if d < 0 then vec = vec^(toList (0..n-1))
+    else if d > 0 then vec = vec || matrix(toList(d:{0}));
+    -- Now we quotient the algebra by this null vec
     algebra.span = apply(algebra.span, x -> reduceSpanningVec(x, k));
     reduction := toList drop(0..n - 1,{k,k});
     algebra.products = drop(algebra.products,{k,k});
@@ -414,6 +421,8 @@ quotientNullVec = (algebra, vec) -> (
         algebra.nullspace = (reduce(algebra.nullspace, vec, k))^reduction;
         );
     algebra.span = drop(algebra.span, {k,k});
+    n = #algebra.span;
+    if any(toList (2..n-1), i -> member(i, algebra.span#i)) then error "here";
     )
 
 quotientAllPolyNullVecs = algebra -> (
@@ -612,15 +621,17 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
     r := coefficientRing(algebra.field)[y];
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
-    for x in select(vals, x -> x != 0) do (
+    --for x in select(vals, x -> x != 0) do (
+    for x in vals do (
         print ("Using value", x);
         newalgebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
         changeRingOfAlgebra(newalgebra, algebra.field);
         newalgebra.polynomials = append(newalgebra.polynomials, y - x);
         quotientNullPolynomials newalgebra;
+        if x == 1 then newalgebra.one = true;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
         algebras = append(algebras, newalgebra);
         print "Found new algebra";
         );
-    return algebras;
+    return new HashTable from (symbol algebras = algebras, symbol vals = vals);
     )
