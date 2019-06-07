@@ -43,7 +43,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
         algebra.evecs#ev = zeroAxialVector(n + 1);
         );
     evecs := findFirstEigenvectors(evals, algebra.field);
-    for i to n - 1 do algebra.evecs#(set {evals#i}) = matrix evecs_{i};
+    for i to n - 1 do algebra.evecs#(set {evals#i}) = algebra.evecs#(set {evals#i}) | (matrix evecs_{i});
     -- If we assume primitivity then change the field to a polynomial ring
     if algebra.primitive then (
         changeRingOfAlgebra(algebra, algebra.field[symbol x, symbol y]);
@@ -63,9 +63,9 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
         if #(toList s) > 1 then (
             for ev in (toList s) do (
                 algebra.evecs#s = algebra.evecs#s|algebra.evecs#(set {ev});
-                algebra.evecs#s = groebnerBasis algebra.evecs#s;
                 );
             );
+        algebra.evecs#s = mingens image algebra.evecs#s;
         );
     --performFlip algebra;
     algebra
@@ -297,15 +297,15 @@ quotientNullspace = (algebra, mat) -> (
     algebra.nullspace = mat;
     n := #algebra.span;
     d := numgens image algebra.nullspace;
-    for i to n - 1 do (
-        a := standardAxialVector(i, n);
-        for j to d - 1 do (
-            prod := axialProduct( a, algebra.nullspace_{j}, algebra.products );
-            if prod =!= false then algebra.nullspace = algebra.nullspace | prod;
-            );
-        );
-    algebra.nullspace = mingens image algebra.nullspace;
-    d = numgens image algebra.nullspace;
+    --for i to n - 1 do (
+    --    a := standardAxialVector(i, n);
+    --    for j to d - 1 do (
+    --        prod := axialProduct( a, algebra.nullspace_{j}, algebra.products );
+    --        if prod =!= false then algebra.nullspace = algebra.nullspace | prod;
+    --        );
+    --    );
+    --algebra.nullspace = mingens image algebra.nullspace;
+    --d = numgens image algebra.nullspace;
     for i to d - 1 do (
         v := flipVector(algebra.nullspace_{i}, algebra);
         if v =!= false then algebra.nullspace = algebra.nullspace | v;
