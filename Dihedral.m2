@@ -367,6 +367,7 @@ quotientNullVec = (algebra, vec) -> (
                 if #unknowns > 0 then return false;
                 --expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
+                if newProd_(i, 0) == 1 then return false; -- cannot find quotient
                 --n = #algebra.span;
                 --if algebra#?one and #algebra.span == 9 then error "";
                 --quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
@@ -374,7 +375,8 @@ quotientNullVec = (algebra, vec) -> (
                 );
             );
         );
-    if z != 0 then (
+    z = mingens image z;
+    if numgens image z > 0 then (
         z = mingens image z;
         d := numgens image z;
         for i in reverse (0 .. d-1) do (
@@ -418,6 +420,7 @@ quotientNullVec = (algebra, vec) -> (
         );
     algebra.span = drop(algebra.span, {k,k});
     n = #algebra.span;
+    --if any(algebra.span, x -> not member(x, {0,1}) and algebra.products#(x#0)#(x#1) === false) then error "another problem";
     if any(toList (2..n-1), i -> member(i, algebra.span#i)) then error "here";
     )
 
@@ -610,7 +613,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
         if any(algebra.polynomials, x -> #support(x) == 1) then break;
         print( "Time taken:", cpuTime() - t1 );
         );
-    if howManyUnknowns algebra == 0 then return algebra;
+    if all(algebra.polynomials, x -> #support(x) != 1) then return {{algebra}, {null}};
     algebras := {};
     p := (select(algebra.polynomials, x -> #support(x) == 1))#0;
     y := (support(p))#0;
