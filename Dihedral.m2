@@ -328,18 +328,14 @@ quotientNullVec = (algebra, vec) -> (
         if all(nonzero, i -> i < 3) then (
             polys := unique select(flatten vec, p -> #support p > 0);
             polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
-            if #polys > #algebra.polynomials then (
+            if #polys != #algebra.polynomials then (
                 print vec_{0,1,2};
                 algebra.polynomials = polys;
                 quotientNullPolynomials algebra;
                 );
-            --if any(algebra.polynomials, x -> #support(x) == 1) then error"";
             return false;
             )
-        else (
-            --algebra.allpolynullvecs = mingens image(algebra.allpolynullvecs | matrix(algebra.field, vec));
-            return false;
-            );
+        else return false;
         );
     --if algebra.primitive then k := last select(nonzero, i -> #support vec#i#0 == 0)
     --else k = last nonzero;
@@ -614,7 +610,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
         if any(algebra.polynomials, x -> #support(x) == 1) then break;
         print( "Time taken:", cpuTime() - t1 );
         );
-    --if howManyUnknowns algebra == 0 then return algebra;
+    if howManyUnknowns algebra == 0 then return algebra;
     algebras := {};
     p := (select(algebra.polynomials, x -> #support(x) == 1))#0;
     y := (support(p))#0;
