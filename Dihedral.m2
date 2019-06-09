@@ -633,5 +633,5 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
         algebras = append(algebras, newalgebra);
         print "Found new algebra";
         );
-    return new HashTable from (symbol algebras = algebras, symbol vals = vals);
+    return {algebras, vals}
     )
