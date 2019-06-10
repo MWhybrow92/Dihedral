@@ -582,18 +582,19 @@ howManyUnknowns = algebra -> (
 
 mainLoop = algebra -> (
     r := algebra.field;
+    ind := gens r;
     while true do (
         n := howManyUnknowns algebra;
         findNewEigenvectors algebra;
         findNullVectors algebra;
         print (n, howManyUnknowns algebra);
         if member(howManyUnknowns algebra, {0,n}) then break;
-        if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return;
+        if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return;
         );
     fusion algebra;
-    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return;
-    --findNullVectors algebra;
-    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return;
+    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return;
+    findNullVectors algebra;
+    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return;
     )
 
 universalDihedralAlgebra = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
@@ -608,18 +609,19 @@ universalDihedralAlgebra = { field => QQ, primitive => true, form => true } >> o
 
 dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
     algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
-    r := opts.field;
-    algebra.polys = true;
+    r := algebra.field;
+    ind := set(gens r);
+    if #ind > 0 then algebra.polys = true;
     while howManyUnknowns algebra > 0 do (
         t1 := cpuTime();
         mainLoop algebra;
-        if any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then break;
+        if any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then break;
         print( "Time taken:", cpuTime() - t1 );
         );
-    if all(algebra.polynomials, x -> #(set(support x)*set(gens r)) != 1) then return {{algebra}, {null}};
+    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then return {{algebra}, {null}};
     algebras := {};
-    p := (select(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1))#0;
-    y := (#(set(support p)*set(gens r)))#0;
+    p := (select(algebra.polynomials, x -> #(set(support x)*ind) == 1))#0;
+    y := (#(set(support p)*ind))#0;
     r = coefficientRing(algebra.field)[y];
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
