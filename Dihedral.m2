@@ -582,7 +582,7 @@ howManyUnknowns = algebra -> (
 
 mainLoop = algebra -> (
     r := algebra.field;
-    ind := gens r;
+    ind := set(gens r);
     while true do (
         n := howManyUnknowns algebra;
         findNewEigenvectors algebra;
@@ -621,7 +621,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then return {{algebra}, {null}};
     algebras := {};
     p := (select(algebra.polynomials, x -> #(set(support x)*ind) == 1))#0;
-    y := (#(set(support p)*ind))#0;
+    y := (toList(set(support p)*ind))#0;
     r = coefficientRing(algebra.field)[y];
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
