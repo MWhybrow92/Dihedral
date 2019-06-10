@@ -124,7 +124,6 @@ fusion = {expand => true} >> opts -> algebra -> (
                         );
                     );
                 );
-            findNullVectors algebra;
             );
         for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
         remove(algebra, temp);
