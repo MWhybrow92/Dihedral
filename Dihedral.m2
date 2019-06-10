@@ -104,6 +104,7 @@ fusionRule = (set0, set1, tbl) -> (
 fusion = {expand => true} >> opts -> algebra -> (
     if opts.expand == true then print "Performing fusion with expansion"
     else print "Performing fusion without expansion";
+    r := algebra.field;
     algebra.temp = copy algebra.evecs;
     for p in algebra.usefulpairs do (
         rule := fusionRule(p#0, p#1, algebra.tbl);
@@ -119,10 +120,11 @@ fusion = {expand => true} >> opts -> algebra -> (
                             );
                         prod := axialProduct(u, v, algebra.products);
                         if prod =!= false and prod != 0 then recordEvec(prod, rule, algebra);
-                        if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
+                        if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return;
                         );
                     );
                 );
+            findNullVectors algebra;
             );
         for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
         remove(algebra, temp);
@@ -324,9 +326,9 @@ quotientNullVec = (algebra, vec) -> (
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
     k = last nonzero;
-    if algebra.primitive and #support vec#k#0 > 0 then ( -- all poly mat
+    if algebra.primitive and #(set(support vec#k#0)*set(gens r)) > 0 then ( -- all poly mat
         if all(nonzero, i -> i < 3) then (
-            polys := unique select(flatten vec, p -> #support p > 0);
+            polys := unique select(flatten vec, p -> #(set(support vec#k#0)*set(gens r)) > 0);
             polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
             if #polys != #algebra.polynomials then (
                 print vec_{0,1,2};
@@ -580,18 +582,19 @@ howManyUnknowns = algebra -> (
     )
 
 mainLoop = algebra -> (
+    r := algebra.field;
     while true do (
         n := howManyUnknowns algebra;
         findNewEigenvectors algebra;
         findNullVectors algebra;
         print (n, howManyUnknowns algebra);
         if member(howManyUnknowns algebra, {0,n}) then break;
-        if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
+        if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return;
         );
     fusion algebra;
-    if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
-    findNullVectors algebra;
-    if algebra.polys and any(algebra.polynomials, x -> #support(x) == 1) then return;
+    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return;
+    --findNullVectors algebra;
+    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return;
     )
 
 universalDihedralAlgebra = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
@@ -606,18 +609,19 @@ universalDihedralAlgebra = { field => QQ, primitive => true, form => true } >> o
 
 dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
     algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
+    r := opts.field;
     algebra.polys = true;
     while howManyUnknowns algebra > 0 do (
         t1 := cpuTime();
         mainLoop algebra;
-        if any(algebra.polynomials, x -> #support(x) == 1) then break;
+        if any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then break;
         print( "Time taken:", cpuTime() - t1 );
         );
-    if all(algebra.polynomials, x -> #support(x) != 1) then return {{algebra}, {null}};
+    if all(algebra.polynomials, x -> #(set(support x)*set(gens r)) != 1) then return {{algebra}, {null}};
     algebras := {};
-    p := (select(algebra.polynomials, x -> #support(x) == 1))#0;
-    y := (support(p))#0;
-    r := coefficientRing(algebra.field)[y];
+    p := (select(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1))#0;
+    y := (#(set(support p)*set(gens r)))#0;
+    r = coefficientRing(algebra.field)[y];
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
     --for x in select(vals, x -> x != 0) do (
@@ -625,12 +629,37 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
         print ("Using value", x);
         newalgebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
         changeRingOfAlgebra(newalgebra, algebra.field);
-        newalgebra.polynomials = append(newalgebra.polynomials, y - x);
+        newalgebra.polynomials = append(algebra.polynomials, y - x);
         quotientNullPolynomials newalgebra;
-        if x == 1 then newalgebra.one = true;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
         algebras = append(algebras, newalgebra);
         print "Found new algebra";
         );
     return {algebras, vals}
+    )
+
+tauMaps = (algebra, plusEvals, minusEvals) -> (
+    n := #algebra.span;
+    espace := zeroAxialVector n;
+    mat0 := zeroAxialVector n;
+    for ev in plusEvals do espace = espace | algebra.evecs#(set {ev});
+    k := numgens image espace - 1;
+    for ev in minusEvals do espace = espace | algebra.evecs#(set {ev});
+    espace = espace_{1..n};
+    for i to n - 1 do (
+        a = sub(standardAxialVector(i, n), algebra.field);
+        v = a//espace;
+        v = v^{0..k-1} || -v^{k..n-1};
+        mat0 = mat0 | (espace*v);
+        );
+    mat0 = mat0_{1..n};
+    mat1 := new MutableMatrix from mat0;
+    f = findFlip algebra;
+    for i to n - 1 do (
+        for j to n - 1 do (
+            im = f_{i,j};
+            mat1_(im#0, im#1) = mat0_(i,j);
+            );
+        );
+    return {mat0, matrix mat1};
     )
