@@ -324,7 +324,7 @@ quotientNullVec = (algebra, vec) -> (
     vec = entries vec;
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
-    k = last nonzero;
+    k := last nonzero;
     if algebra.primitive and #(set(support vec#k#0)*set(gens r)) > 0 then ( -- all poly mat
         if all(nonzero, i -> i < 3) then (
             polys := unique select(flatten vec, p -> #(set(support vec#k#0)*set(gens r)) > 0);
