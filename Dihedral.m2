@@ -618,7 +618,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
         if any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then break;
         print( "Time taken:", cpuTime() - t1 );
         );
-    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then return {{algebra}, {null}};
+    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then fusion algebra;
     algebras := {};
     p := (select(algebra.polynomials, x -> #(set(support x)*ind) == 1))#0;
     y := (toList(set(support p)*ind))#0;
