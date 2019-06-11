@@ -626,7 +626,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
     --for x in select(vals, x -> x != 0) do (
-    for x in vals do (
+    for x in unique(vals) do (
         print ("Using value", x);
         newalgebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
         changeRingOfAlgebra(newalgebra, algebra.field);
