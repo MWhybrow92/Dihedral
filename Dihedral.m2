@@ -20,7 +20,7 @@ InfiniteFamilyTable = a -> hashTable{
     {0,1} => set {}, {0,0} => set {0}, {0,1/2} => set {1/2}, {0,3/8} => set {3/8}, {0, a} => set {a},
     {1/2,1} => set {1/2}, {1/2,0} => set {1/2}, {1/2,1/2} => set {1,0}, {1/2,3/8} => set {3/8}, {1/2, a} => set {a},
     {3/8,1} => set {3/8}, {3/8,0} => set {3/8}, {3/8,1/2} => set {3/8}, {3/8,3/8} => set {1, 0, 1/2}, {3/8,a} => set {},
-    {a, 1} => set {a}, {a, 0} => set {a}, {a, 1/2} => set {a}, {a, 3/8} => set {}, {a, a} => set {1, 0, 1/2} 
+    {a, 1} => set {a}, {a, 0} => set {a}, {a, 1/2} => set {a}, {a, 3/8} => set {}, {a, a} => set {1, 0, 1/2}
 }
 
 dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts -> (evals, tbl) -> (
@@ -446,6 +446,20 @@ quotientAllPolyNullVecs = algebra -> (
     )
 
 reduce = (u, v, k) -> u - v*u^{k}
+
+reduceMat = (u, mat) -> (
+    r := ring u;
+    n := numgens image mat - 1;
+    for i to n do (
+        v := mat_{i};
+        vec := entries v;
+        k := last positions(vec, x -> x#0 != 0);
+        entry := vec#k#0;
+        v = v*sub(1/entry, r);
+        u = mingens image reduce(u, v, k);
+        );
+    return u;
+    )
 
 findUnknowns = (u, v, products) -> (
     unknowns := {};
