@@ -461,6 +461,20 @@ reduceMat = (u, mat) -> (
     return u;
     )
 
+reducedEvecs = algebra -> (
+    evecs := new MutableHashTable;
+    evals := keys algebra.evecs;
+    for s in select(evals, x -> #x > 1) do (
+        for ev in select(evals, x -> isSubset(x, s) and x =!= set) do (
+            evecs#s = reduceMat(algebra.evecs#s, algebra.evecs#ev);
+            )
+        );
+    for s in select(evals, x -> #x == 1) do (
+            evecs#s = algebra.evecs#s;
+        );
+    evecs
+    )
+
 findUnknowns = (u, v, products) -> (
     unknowns := {};
     n := numgens target u - 1;
