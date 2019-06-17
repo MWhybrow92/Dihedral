@@ -147,7 +147,7 @@ recordEvec = (v, rule, algebra) -> (
                 if z != 0 then (
                     quotientNullspace (algebra, z);
                     return;
-                    )
+                    );
                 )
             else if isSubset(rule, s) then (
                 algebra.temp#s = mingens image(algebra.temp#s | v);
@@ -156,7 +156,7 @@ recordEvec = (v, rule, algebra) -> (
                 z = mingens intersect(image v, image algebra.temp#s);
                 if z != 0 then (
                     algebra.temp#(s*rule) = mingens image (algebra.temp#(s*rule) | z);
-                    )
+                    );
                 );
             );
         );
@@ -214,7 +214,7 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                     u = algebra.evecs#s_{i};
                     );
                 prod := axialProduct(a, u, algebra.products);
-                if prod =!= false then
+                if prod =!= false then (
                     if #s == 1 then quotientNullspace (algebra, prod - u*(toList s)#0)
                     else (
                         for ev in toList s do (
@@ -225,6 +225,7 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                     );
                 );
             );
+        );
     for s in keys algebra.evecs do algebra.evecs#s = mingens image algebra.evecs#s;
     --performFlip algebra;
     )
@@ -467,7 +468,7 @@ reducedEvecs = algebra -> (
     for s in select(evals, x -> #x > 1) do (
         for ev in select(evals, x -> isSubset(x, s) and x =!= set) do (
             evecs#s = reduceMat(algebra.evecs#s, algebra.evecs#ev);
-            )
+            );
         );
     for s in select(evals, x -> #x == 1) do (
             evecs#s = algebra.evecs#s;
