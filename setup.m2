@@ -1,6 +1,7 @@
 recursionLimit = 1000;
 
 load "Dihedral.m2";
+load "examples.m2";
 
 -- r = frac(QQ[symbol n]);
 -- evals = {1, 0, r_0};
