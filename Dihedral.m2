@@ -271,6 +271,8 @@ changeRingOfAlgebra = (algebra, r) -> (
     for ev in keys algebra.evecs do algebra.evecs#ev = sub(algebra.evecs#ev, r);
     -- Change the polynomials
     algebra.polynomials = apply(algebra.polynomials, x -> sub(x, r));
+    -- Change the nullspace
+    if algebra#?nullspace then algebra.nullspace = sub(algebra.nullspace, r);
     )
 
 reduceSpanningVec = (vec, k) -> (
@@ -281,29 +283,23 @@ reduceSpanningVec = (vec, k) -> (
     vec
     )
 
-quotientNullspace = (algebra, mat) -> (
+quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
     if mat == 0 then return;
     algebra.nullspace = mat;
     n := #algebra.span;
     d := numgens image algebra.nullspace;
-    --for i to n - 1 do (
-    --    a := standardAxialVector(i, n);
-    --    for j to d - 1 do (
-    --        prod := axialProduct( a, algebra.nullspace_{j}, algebra.products );
-    --        if prod =!= false then algebra.nullspace = algebra.nullspace | prod;
-    --        );
-    --    );
-    --algebra.nullspace = mingens image algebra.nullspace;
-    --d = numgens image algebra.nullspace;
-    for i to d - 1 do (
-        v := flipVector(algebra.nullspace_{i}, algebra);
-        if v =!= false then algebra.nullspace = algebra.nullspace | v;
+    if opts.Flip then (
+        for i to d - 1 do (
+            v := flipVector(algebra.nullspace_{i}, algebra);
+            if v =!= false then algebra.nullspace = algebra.nullspace | v;
+            );
+        algebra.nullspace = mingens image algebra.nullspace;
+        d = numgens image algebra.nullspace;
         );
-    algebra.nullspace = mingens image algebra.nullspace;
-    for j in reverse toList(0 .. numgens image algebra.nullspace - 1) do (
+    for j in reverse toList(0 .. d - 1) do (
         quotientNullVec(algebra, algebra.nullspace_{j});
         );
-    remove (algebra, nullspace);
+    --remove (algebra, nullspace);
     )
 
 quotientNullVec = (algebra, vec) -> (
@@ -364,16 +360,7 @@ quotientNullVec = (algebra, vec) -> (
                 );
             );
         );
-    z = mingens image z;
-    if numgens image z > 0 then (
-        z = mingens image z;
-        d := numgens image z;
-        for i in reverse (0 .. d-1) do (
-            print i;
-            n = #algebra.span;
-            quotientNullVec(algebra, z_{i}^(toList(0..n-1)));
-            );
-        );
+    quotientNullspace(algebra, z, Flip => false);
     n = #algebra.span;
     if k > n - 1 then return;
     d = n - numgens target vec;
