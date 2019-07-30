@@ -1,3 +1,5 @@
+load "examples.m2";
+
 -- build generic vectors
 zeroAxialVector = (n) -> transpose matrix { toList(n:0) }
 standardAxialVector = (i, n) -> transpose matrix { toList( splice( (i:0, 1, n-i-1:0) ) ) }
@@ -640,6 +642,14 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
         print "Found new algebra";
         );
     return {algebras, vals}
+    )
+
+testPolynomial = algebra -> (
+    n := #algebra.span;
+    v := sub(standardAxialVector(0, n), algebra.field);
+    evals := select(algebra.evals, ev -> ev != 1);
+    evals = select(evals, ev -> numgens intersect(image algebra.temp#(set {ev}), image v) > 0);
+    if #evals > 0 then error "0";
     )
 
 tauMaps = (algebra, plusEvals, minusEvals) -> (
