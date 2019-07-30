@@ -299,7 +299,9 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
         d = numgens image algebra.nullspace;
         );
     for j in reverse toList(0 .. d - 1) do (
-        quotientNullVec(algebra, algebra.nullspace_{j});
+        if j < numgens image algebra.nullspace then (
+            quotientNullVec(algebra, algebra.nullspace_{j});
+            );
         );
     --remove (algebra, nullspace);
     )
@@ -354,11 +356,11 @@ quotientNullVec = (algebra, vec) -> (
                 if #unknowns > 0 then return false;
                 --expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
-                if newProd_(i, 0) == 1 then return false; -- cannot find quotient
+                if newProd !=0 and newProd_(i, 0) == 1 then return false; -- cannot find quotient
                 --n = #algebra.span;
                 --if algebra#?one and #algebra.span == 9 then error "";
                 --quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
-                z = z | (standardAxialVector(i,n) - newProd);
+                z = z | (sub(standardAxialVector(i,n), algebra.field) - newProd);
                 );
             );
         );
