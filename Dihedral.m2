@@ -334,6 +334,9 @@ quotientNullVec = (algebra, vec) -> (
         algebra.products = new MutableList from {};
         algebra.nullspace = matrix 0;
         for ev in keys algebra.evecs do algebra.evecs#ev = matrix 0;
+        if algebra#?temp then (
+            for ev in keys algebra.temp do algebra.temp#ev = matrix 0;
+            );
         return;
         );
     vec = sub(matrix vec, algebra.field);
