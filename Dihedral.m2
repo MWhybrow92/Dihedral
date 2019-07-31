@@ -109,7 +109,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                             );
                         prod := axialProduct(u, v, algebra.products);
                         if prod =!= false and prod != 0 then recordEvec(prod, rule, algebra);
-                        if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return;
+                        if findNullPolys algebra then return;
                         );
                     );
                 );
@@ -120,6 +120,15 @@ fusion = {expand => true} >> opts -> algebra -> (
     )
 
 recordEvec = (v, rule, algebra) -> (
+    if rule === set {} then quotientNullspace (algebra, v)
+    else (
+        for s in keys algebra.temp do (
+            if isSubset(rule, s) then algebra.temp#s = mingens image(algebra.temp#s|v);
+            );
+        );
+    )
+
+OLDrecordEvec = (v, rule, algebra) -> (
     if rule === set {} then quotientNullspace (algebra, v)
     else (
         for s in keys algebra.temp do (
@@ -233,18 +242,34 @@ quotientNullPolynomials = algebra -> (
     --algebra.allpolynullvecs = algebra.allpolynullvecs % I;
     )
 
+findNullPolys = algebra -> (
+    -- A bit patchy to catch null polynomials
+    r := algebra.field;
+    v := sub(standardAxialVector(0, #algebra.span), r);
+    evals := select(algebra.evals, ev -> ev != 1);
+    za = mingens intersect(image v, image algebra.temp#(set evals));
+    quotientNullVec(algebra, za);
+    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return true
+    else return false;
+    )
+
 findNullVectors = algebra -> (
     while true do (
         n := howManyUnknowns algebra;
+        -- find new evecs
         findNewEigenvectors(algebra, expand => false);
+        algebra.temp = copy algebra.evecs;
         -- intersect distinct eigenspaces
         print "Finding null vectors";
-        for ev in select(algebra.usefulpairs, x -> (x#0)*(x#1) === set {}) do (
+        pset := keys algebra.evecs;
+        evalpairs := toList((set pset)**(set pset))/toList;
+        evalpairs = select(evalpairs, x -> not (isSubset(x#0,x#1) or isSubset(x#1, x#0)));
+        for ev in evalpairs do (
             za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
-            quotientNullspace (algebra, za);
+            recordEvec(za, (ev#0)*(ev#1), algebra )
             );
-        --performFlip algebra;
-        --quotientAllPolyNullVecs algebra;
+        for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
+        remove(algebra, temp);
         if member(howManyUnknowns algebra, {0,n}) then break;
         );
     )
@@ -338,6 +363,7 @@ quotientNullVec = (algebra, vec) -> (
     vec = sub(matrix vec, algebra.field);
     if algebra.primitive then entry := sub(vec_(k,0), coefficientRing algebra.field)
     else entry = vec_(k,0);
+    if algebra#?Intersect then error "";
     n := #algebra.span;
     prod := standardAxialVector(k,n) - vec*(sub(1/entry, algebra.field));
     vec = vec*sub(1/entry, algebra.field);
@@ -632,6 +658,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
     r = coefficientRing(algebra.field)[y];
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
+    return;
     --for x in select(vals, x -> x != 0) do (
     for x in unique(vals) do (
         print ("Using value", x);
