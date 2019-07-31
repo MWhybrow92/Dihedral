@@ -128,30 +128,6 @@ recordEvec = (v, rule, algebra) -> (
         );
     )
 
-OLDrecordEvec = (v, rule, algebra) -> (
-    if rule === set {} then quotientNullspace (algebra, v)
-    else (
-        for s in keys algebra.temp do (
-            if rule*s === set {} then (
-                z := mingens intersect(image v, image algebra.temp#s);
-                if z != 0 then (
-                    quotientNullspace (algebra, z);
-                    return;
-                    );
-                )
-            else if isSubset(rule, s) then (
-                algebra.temp#s = mingens image(algebra.temp#s | v);
-                )
-            else (
-                z = mingens intersect(image v, image algebra.temp#s);
-                if z != 0 then (
-                    algebra.temp#(s*rule) = mingens image (algebra.temp#(s*rule) | z);
-                    );
-                );
-            );
-        );
-    )
-
 expandAlgebra = (algebra, unknowns) -> (
     if #unknowns == 0 then return;
     k := #unknowns;
@@ -658,7 +634,6 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true } >> opts -> (
     r = coefficientRing(algebra.field)[y];
     p = sub(p, r);
     vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
-    return;
     --for x in select(vals, x -> x != 0) do (
     for x in unique(vals) do (
         print ("Using value", x);
