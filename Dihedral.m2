@@ -224,6 +224,7 @@ findNullPolys = algebra -> (
     v := sub(standardAxialVector(0, #algebra.span), r);
     evals := select(algebra.evals, ev -> ev != 1);
     za = mingens intersect(image v, image algebra.temp#(set evals));
+    if za != 0 then print za;
     quotientNullVec(algebra, za);
     if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return true
     else return false;
@@ -319,7 +320,6 @@ quotientNullVec = (algebra, vec) -> (
             polys := unique select(flatten vec, p -> #(set(support vec#k#0)*set(gens r)) > 0);
             polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
             if #polys != #algebra.polynomials then (
-                print vec_{0,1,2};
                 algebra.polynomials = polys;
                 quotientNullPolynomials algebra;
                 );
