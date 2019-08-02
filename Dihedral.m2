@@ -1,5 +1,29 @@
 load "examples.m2";
 
+colReduce = M -> (
+    r = ring M;
+    M = new MutableMatrix from transpose M;
+    (m,n) := (numrows M, numcols M);
+    i := m - 1; --row of pivot
+    for j in reverse (0 .. n-1) do (
+    	if i == -1 then break;
+    	a := position (0..i, l-> isUnit M_(l,j), Reverse => true);
+        if a === null then continue;
+    	c := M_(a,j);
+    	rowSwap(M,a,i);
+        if c != 1 then c = sub(1/c, r);
+    	for l from 0 to n-1 do M_(i,l) = M_(i,l)*c;
+    	for k from 0 to m-1 do rowAdd(M,k,-M_(k,j),i);
+    	i = i-1;
+	);
+    M = transpose (new Matrix from M);
+    M = map(r^n, r^m, M);
+    return M;
+    )
+
+--findBasis = mat -> mingens image mat;
+findBasis = mat -> mingens image colReduce mat;
+
 -- build generic vectors
 zeroAxialVector = (n) -> transpose matrix { toList(n:0) }
 standardAxialVector = (i, n) -> transpose matrix { toList( splice( (i:0, 1, n-i-1:0) ) ) }
@@ -54,7 +78,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
                 algebra.evecs#s = algebra.evecs#s|algebra.evecs#(set {ev});
                 );
             );
-        algebra.evecs#s = mingens image algebra.evecs#s;
+        algebra.evecs#s = findBasis algebra.evecs#s;
         );
     --performFlip algebra;
     algebra
@@ -123,7 +147,7 @@ recordEvec = (v, rule, algebra) -> (
     if rule === set {} then quotientNullspace (algebra, v)
     else (
         for s in keys algebra.temp do (
-            if isSubset(rule, s) then algebra.temp#s = mingens image(algebra.temp#s|v);
+            if isSubset(rule, s) then algebra.temp#s = findBasis (algebra.temp#s|v);
             );
         );
     )
@@ -192,7 +216,7 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                 );
             );
         );
-    for s in keys algebra.evecs do algebra.evecs#s = mingens image algebra.evecs#s;
+    for s in keys algebra.evecs do algebra.evecs#s = findBasis algebra.evecs#s;
     --performFlip algebra;
     )
 
@@ -223,7 +247,7 @@ findNullPolys = algebra -> (
     r := algebra.field;
     v := sub(standardAxialVector(0, #algebra.span), r);
     evals := select(algebra.evals, ev -> ev != 1);
-    za = mingens intersect(image v, image algebra.temp#(set evals));
+    za = findBasis gens intersect(image v, image algebra.temp#(set evals));
     if za != 0 then print za;
     quotientNullVec(algebra, za);
     if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return true
@@ -242,7 +266,7 @@ findNullVectors = algebra -> (
         evalpairs := toList((set pset)**(set pset))/toList;
         evalpairs = select(evalpairs, x -> not (isSubset(x#0,x#1) or isSubset(x#1, x#0)));
         for ev in evalpairs do (
-            za := mingens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
+            za := colReduce gens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
             recordEvec(za, (ev#0)*(ev#1), algebra )
             );
         for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
@@ -297,7 +321,7 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
             v := flipVector(algebra.nullspace_{i}, algebra);
             if v =!= false then algebra.nullspace = algebra.nullspace | v;
             );
-        algebra.nullspace = mingens image algebra.nullspace;
+        algebra.nullspace = findBasis algebra.nullspace;
         d = numgens image algebra.nullspace;
         );
     for j in reverse toList(0 .. d - 1) do (
@@ -389,12 +413,12 @@ quotientNullVec = (algebra, vec) -> (
         );
     for ev in keys algebra.evecs do (
         algebra.evecs#ev = (reduce(algebra.evecs#ev, vec, k))^reduction;
-        algebra.evecs#ev = mingens (image algebra.evecs#ev);
+        algebra.evecs#ev = findBasis algebra.evecs#ev;
         );
     if algebra#?temp then (
         for ev in keys algebra.temp do (
             algebra.temp#ev = (reduce(algebra.temp#ev, vec, k))^reduction;
-            algebra.temp#ev = mingens( image algebra.temp#ev);
+            algebra.temp#ev = findBasis algebra.temp#ev;
             );
         );
     --if algebra#?allpolynullvecs then (
@@ -411,7 +435,7 @@ quotientNullVec = (algebra, vec) -> (
 
 quotientAllPolyNullVecs = algebra -> (
     if not algebra.primitive then return;
-    algebra.allpolynullvecs = mingens image algebra.allpolynullvecs;
+    algebra.allpolynullvecs = findBasis algebra.allpolynullvecs;
     n := numgens image algebra.allpolynullvecs;
     for i in reverse toList(0..n - 1) do (
         vec := flatten entries algebra.allpolynullvecs_{i};
@@ -432,7 +456,7 @@ reduceMat = (u, mat) -> (
         k := last positions(vec, x -> x#0 != 0);
         entry := vec#k#0;
         v = v*sub(1/entry, r);
-        u = mingens image reduce(u, v, k);
+        u = findBasis reduce(u, v, k);
         );
     return u;
     )
@@ -683,24 +707,4 @@ tauMaps = (algebra, plusEvals, minusEvals) -> (
             );
         );
     return {mat0, matrix mat1};
-    )
-
-colReduce = M -> (
-    r = ring M;
-    M = new MutableMatrix from transpose M;
-    (m,n) := (numrows M, numcols M);
-    i := m - 1; --row of pivot
-    for j in reverse (0 .. n-1) do (
-    	if i == -1 then break;
-    	a := position (0..i, l-> isUnit M_(l,j), Reverse => true);
-        if a === null then continue;
-    	c := M_(a,j);
-    	rowSwap(M,a,i);
-        if c != 1 then c = sub(1/c, r);
-    	for l from 0 to n-1 do M_(i,l) = M_(i,l)*c;
-    	for k from 0 to m-1 do rowAdd(M,k,-M_(k,j),i);
-    	i = i-1;
-	);
-    M = (transpose new Matrix from M);
-    return M;
     )
