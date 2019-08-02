@@ -684,3 +684,23 @@ tauMaps = (algebra, plusEvals, minusEvals) -> (
         );
     return {mat0, matrix mat1};
     )
+
+colReduce = M -> (
+    r = ring M;
+    M = new MutableMatrix from transpose M;
+    (m,n) := (numrows M, numcols M);
+    i := m - 1; --row of pivot
+    for j in reverse (0 .. n-1) do (
+    	if i == -1 then break;
+    	a := position (0..i, l-> isUnit M_(l,j), Reverse => true);
+        if a === null then continue;
+    	c := M_(a,j);
+    	rowSwap(M,a,i);
+        if c != 1 then c = sub(1/c, r);
+    	for l from 0 to n-1 do M_(i,l) = M_(i,l)*c;
+    	for k from 0 to m-1 do rowAdd(M,k,-M_(k,j),i);
+    	i = i-1;
+	);
+    M = (transpose new Matrix from M);
+    return M;
+    )
