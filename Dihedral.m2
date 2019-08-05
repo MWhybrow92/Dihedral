@@ -1,16 +1,21 @@
 load "examples.m2";
 
-colReduce = M -> (
+colReduce = M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the transpose
     r = ring M;
     M = new MutableMatrix from transpose M;
     (m,n) := (numrows M, numcols M);
     i := m - 1; --row of pivot
     for j in reverse (0 .. n-1) do (
     	if i == -1 then break;
-    	a := position (0..i, l-> isUnit M_(l,j), Reverse => true);
+    	a := position (0..i, l-> M_(l,j) != 0, Reverse => true);
+        while a =!= null do (
+        	c := M_(a,j);
+        	rowSwap(M,a,i);
+            if isUnit c then break;
+            i = i - 1;
+            a = position (0..i, l-> M_(l,j) != 0, Reverse => true);
+            );
         if a === null then continue;
-    	c := M_(a,j);
-    	rowSwap(M,a,i);
         if c != 1 then c = sub(1/c, r);
     	for l from 0 to n-1 do M_(i,l) = M_(i,l)*c;
     	for k from 0 to m-1 do rowAdd(M,k,-M_(k,j),i);
@@ -18,11 +23,11 @@ colReduce = M -> (
 	);
     M = transpose (new Matrix from M);
     M = map(r^n, r^m, M);
-    return M;
+    return M_{i+1..m-1};
     )
 
 --findBasis = mat -> mingens image mat;
-findBasis = mat -> mingens image colReduce mat;
+findBasis = mat -> colReduce mingens image mat;
 
 -- build generic vectors
 zeroAxialVector = (n) -> transpose matrix { toList(n:0) }
