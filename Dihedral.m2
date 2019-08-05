@@ -253,7 +253,6 @@ findNullPolys = algebra -> (
     v := sub(standardAxialVector(0, #algebra.span), r);
     evals := select(algebra.evals, ev -> ev != 1);
     za = findBasis gens intersect(image v, image algebra.temp#(set evals));
-    if za != 0 then print za;
     quotientNullVec(algebra, za);
     if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return true
     else return false;
