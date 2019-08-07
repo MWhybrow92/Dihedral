@@ -204,19 +204,25 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
         for i to numgens source algebra.evecs#s - 1 do (
             if i < numgens source algebra.evecs#s then (
                 u := algebra.evecs#s_{i};
-                if opts.expand then (
-                    unknowns := findUnknowns(a, u, algebra.products);
-                    expandAlgebra(algebra, unknowns);
-                    a = sub(standardAxialVector(0, #algebra.span), algebra.field);
-                    u = algebra.evecs#s_{i};
-                    );
-                prod := axialProduct(a, u, algebra.products);
-                if prod =!= false then (
-                    if #s == 1 then quotientNullspace (algebra, prod - u*(toList s)#0)
-                    else (
-                        for ev in toList s do (
-                            d := s - set {ev};
-                            if algebra.evecs#?d then algebra.evecs#d = algebra.evecs#d | (prod - ev*u); -- maybe want to expand evecs to power set of evals
+                for t in select(subsets s, x -> x =!= set {}) do (
+                    d := s - t;
+                    for ev in t do (
+                        u = axialProduct(a, u, algebra.products) - ev*u;
+                        if u === false then break;
+                        )
+                --if opts.expand then (
+                --    unknowns := findUnknowns(a, u, algebra.products);
+                --    expandAlgebra(algebra, unknowns);
+                --    a = sub(standardAxialVector(0, #algebra.span), algebra.field);
+                --    u = algebra.evecs#s_{i};
+                --    );
+                -- prod := axialProduct(a, u, algebra.products);
+                    if u =!= false then ( -- record evec
+                        if #d == 0 then quotientNullspace (algebra, u)
+                        else (
+                            for ev in toList s do (
+                                if algebra.evecs#?d then algebra.evecs#d = algebra.evecs#d | u; -- maybe want to expand evecs to power set of evals
+                                );
                             );
                         );
                     );
