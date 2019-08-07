@@ -26,6 +26,8 @@ colReduce = M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the 
     return M_{i+1..m-1};
     )
 
+properSubsets = s -> select( subsets s, x -> x =!= set {} and x =!= s );
+
 --findBasis = mat -> mingens image mat;
 findBasis = mat -> colReduce mingens image mat;
 
@@ -57,7 +59,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
     for i in 1..n-1 do algebra.products#i#0 = sub(standardAxialVector(i + 1, n + 1), algebra.field);
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
-    for ev in select( subsets evals, x -> #x != 0 and #x != n )/set do (
+    for ev in (properSubsets evals)/set do (
         algebra.evecs#ev = zeroAxialVector(n + 1);
         );
     evecs := findFirstEigenvectors(evals, algebra.field);
@@ -90,7 +92,7 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true } >> opts 
     )
 
 usefulPairs = (evals, tbl) -> (
-    pset := select( subsets evals, x -> #x != 0 and #x != #evals );
+    pset := properSubsets evals;
     evalpairs := toList((set pset)**(set pset))/toList;
     useful := {};
     for p in evalpairs do (
