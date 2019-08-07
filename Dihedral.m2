@@ -204,13 +204,14 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
     for s in keys algebra.evecs do (
         for i to numgens source algebra.evecs#s - 1 do (
             if i < numgens source algebra.evecs#s then (
-                u := algebra.evecs#s_{i};
                 for t in select(subsets s, x -> x =!= set {}) do (
-                    d := s - t;
-                    for ev in t do (
-                        u = axialProduct(a, u, algebra.products) - ev*u;
-                        if u === false then break;
-                        )
+                    u := algebra.evecs#s_{i};
+                    for ev in toList t do (
+                        prod = axialProduct(a, u, algebra.products);
+                        if prod === false then break;
+                        u = prod - ev*u
+                        );
+                    if prod =!= false then recordEvec(u, s - t, algebra.evecs, algebra);
                 --if opts.expand then (
                 --    unknowns := findUnknowns(a, u, algebra.products);
                 --    expandAlgebra(algebra, unknowns);
@@ -218,14 +219,6 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                 --    u = algebra.evecs#s_{i};
                 --    );
                 -- prod := axialProduct(a, u, algebra.products);
-                    if u =!= false then ( -- record evec
-                        if #d == 0 then quotientNullspace (algebra, u)
-                        else (
-                            for ev in toList s do (
-                                if algebra.evecs#?d then algebra.evecs#d = algebra.evecs#d | u; -- maybe want to expand evecs to power set of evals
-                                );
-                            );
-                        );
                     );
                 );
             );
