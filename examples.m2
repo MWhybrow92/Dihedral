@@ -25,6 +25,12 @@ InfiniteFamilyTable = a -> hashTable{
     {a, 1} => set {a}, {a, 0} => set {a}, {a, 1/2} => set {a}, {a, 3/8} => set {}, {a, a} => set {1, 0, 1/2}
 }
 
+GenericJordan = (a,b) -> hashTable {
+    {1,1} => set {1}, {1,a} => set {a}, {1,b} => set {b},
+    {a,1} => set {a}, {a,a} => set {a}, {a,b} => set {b},
+    {b,1} => set {b}, {b,a} => set {b}, {b,b} => set {1, a}
+}
+
 tkachev14 = hashTable {
     {1,1} => set {1},
     {1, -1} => set {-1},
