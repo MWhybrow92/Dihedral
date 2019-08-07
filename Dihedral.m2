@@ -137,7 +137,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                             expandAlgebra(algebra, unknowns);
                             );
                         prod := axialProduct(u, v, algebra.products);
-                        if prod =!= false and prod != 0 then recordEvec(prod, rule, algebra);
+                        if prod =!= false then recordEvec(prod, rule, algebra.temp, algebra);
                         if findNullPolys algebra then return;
                         );
                     );
@@ -148,11 +148,12 @@ fusion = {expand => true} >> opts -> algebra -> (
         --performFlip algebra;
     )
 
-recordEvec = (v, rule, algebra) -> (
+recordEvec = (v, rule, evecs, algebra) -> (
+    if v == 0 then return;
     if rule === set {} then quotientNullspace (algebra, v)
     else (
-        for s in keys algebra.temp do (
-            if isSubset(rule, s) then algebra.temp#s = findBasis (algebra.temp#s|v);
+        for s in keys evecs do (
+            if isSubset(rule, s) then evecs#s = findBasis (evecs#s|v);
             );
         );
     )
@@ -202,7 +203,7 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
         for i to numgens source algebra.evecs#s - 1 do (
             if i < numgens source algebra.evecs#s then (
                 u := algebra.evecs#s_{i};
-                if opts.expand then (
+                if opts.expand then ( -- performs much better with this in
                     unknowns := findUnknowns(a, u, algebra.products);
                     expandAlgebra(algebra, unknowns);
                     a = sub(standardAxialVector(0, #algebra.span), algebra.field);
@@ -210,12 +211,8 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                     );
                 prod := axialProduct(a, u, algebra.products);
                 if prod =!= false then (
-                    if #s == 1 then quotientNullspace (algebra, prod - u*(toList s)#0)
-                    else (
-                        for ev in toList s do (
-                            d := s - set {ev};
-                            if algebra.evecs#?d then algebra.evecs#d = algebra.evecs#d | (prod - ev*u); -- maybe want to expand evecs to power set of evals
-                            );
+                    for ev in toList s do (
+                        recordEvec(prod - ev*u, s - set {ev}, algebra.evecs, algebra);
                         );
                     );
                 );
@@ -263,7 +260,6 @@ findNullVectors = algebra -> (
         n := howManyUnknowns algebra;
         -- find new evecs
         findNewEigenvectors(algebra, expand => false);
-        algebra.temp = copy algebra.evecs;
         -- intersect distinct eigenspaces
         print "Finding null vectors";
         pset := keys algebra.evecs;
@@ -271,10 +267,8 @@ findNullVectors = algebra -> (
         evalpairs = select(evalpairs, x -> not (isSubset(x#0,x#1) or isSubset(x#1, x#0)));
         for ev in evalpairs do (
             za := colReduce gens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
-            recordEvec(za, (ev#0)*(ev#1), algebra )
+            recordEvec(za, (ev#0)*(ev#1), algebra.evecs, algebra )
             );
-        for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
-        remove(algebra, temp);
         if member(howManyUnknowns algebra, {0,n}) then break;
         );
     )
