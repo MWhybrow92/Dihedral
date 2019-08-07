@@ -160,6 +160,11 @@ recordEvec = (v, rule, evecs, algebra) -> (
         );
     )
 
+expandVector = (vec, k) -> (
+    d := numgens source vec;
+    return vec || matrix( toList(k:toList(d:0)));
+    )
+
 expandAlgebra = (algebra, unknowns) -> (
     if #unknowns == 0 then return;
     k := #unknowns;
@@ -169,26 +174,15 @@ expandAlgebra = (algebra, unknowns) -> (
     for i to n + k - 1 do (
         for j to n + k - 1 do (
             if algebra.products#i#j =!= false then (
-                algebra.products#i#j = algebra.products#i#j || matrix(toList(k:{0}));
+                algebra.products#i#j = expandVector(algebra.products#i#j, k);
                 );
             );
         );
-    for ev in keys algebra.evecs do (
-        d := numgens source algebra.evecs#ev;
-        algebra.evecs#ev = algebra.evecs#ev || matrix( toList(k:toList(d:0)));
-        );
-    --d = numgens source algebra.allpolynullvecs;
-    --algebra.allpolynullvecs = algebra.allpolynullvecs || matrix( toList(k:toList(d:0)));
+    for ev in keys algebra.evecs do algebra.evecs#ev = expandVector(algebra.evecs#ev, k);
     if algebra#?temp then (
-        for ev in keys algebra.temp do (
-            d = numgens source algebra.temp#ev;
-            algebra.temp#ev = algebra.temp#ev || matrix( toList(k:toList(d:0)));
-            );
+        for ev in keys algebra.temp do algebra.temp#ev = expandVector(algebra.temp#ev, k);
         );
-    if algebra#?nullspace then (
-        d = numgens source algebra.nullspace;
-        algebra.nullspace = algebra.nullspace || matrix( toList(k:toList(d:0)));
-        );
+    if algebra#?nullspace then algebra.nullspace = expandVector(algebra.nullspace, k);
     for i to k - 1 do (
         x := unknowns#i;
         algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n + i, n + k), algebra.field);
@@ -207,6 +201,14 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                 for t in select(subsets s, x -> x =!= set {}) do (
                     u := algebra.evecs#s_{i};
                     for ev in toList t do (
+                        if opts.expand then (
+                            unknowns := findUnknowns(a, u, algebra.products);
+                            if #unknowns != 0 then (
+                                expandAlgebra(algebra, unknowns);
+                                a = expandVector(a, #unknowns);
+                                u = expandVector(u, #unknowns);
+                                );
+                            );
                         prod = axialProduct(a, u, algebra.products);
                         if prod === false then break;
                         u = prod - ev*u
