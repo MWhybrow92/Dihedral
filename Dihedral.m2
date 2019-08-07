@@ -214,13 +214,6 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                         u = prod - ev*u
                         );
                     if prod =!= false then recordEvec(u, s - t, algebra.evecs, algebra);
-                --if opts.expand then (
-                --    unknowns := findUnknowns(a, u, algebra.products);
-                --    expandAlgebra(algebra, unknowns);
-                --    a = sub(standardAxialVector(0, #algebra.span), algebra.field);
-                --    u = algebra.evecs#s_{i};
-                --    );
-                -- prod := axialProduct(a, u, algebra.products);
                     );
                 );
             );
