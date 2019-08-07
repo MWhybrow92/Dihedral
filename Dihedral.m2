@@ -139,7 +139,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                             expandAlgebra(algebra, unknowns);
                             );
                         prod := axialProduct(u, v, algebra.products);
-                        if prod =!= false and prod != 0 then recordEvec(prod, rule, algebra);
+                        if prod =!= false then recordEvec(prod, rule, algebra.temp, algebra);
                         if findNullPolys algebra then return;
                         );
                     );
@@ -150,11 +150,12 @@ fusion = {expand => true} >> opts -> algebra -> (
         --performFlip algebra;
     )
 
-recordEvec = (v, rule, algebra) -> (
+recordEvec = (v, rule, evecs, algebra) -> (
+    if v == 0 then return;
     if rule === set {} then quotientNullspace (algebra, v)
     else (
-        for s in keys algebra.temp do (
-            if isSubset(rule, s) then algebra.temp#s = findBasis (algebra.temp#s|v);
+        for s in keys evecs do (
+            if isSubset(rule, s) then evecs#s = findBasis (evecs#s|v);
             );
         );
     )
@@ -271,7 +272,6 @@ findNullVectors = algebra -> (
         n := howManyUnknowns algebra;
         -- find new evecs
         findNewEigenvectors(algebra, expand => false);
-        algebra.temp = copy algebra.evecs;
         -- intersect distinct eigenspaces
         print "Finding null vectors";
         pset := keys algebra.evecs;
@@ -279,10 +279,8 @@ findNullVectors = algebra -> (
         evalpairs = select(evalpairs, x -> not (isSubset(x#0,x#1) or isSubset(x#1, x#0)));
         for ev in evalpairs do (
             za := colReduce gens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
-            recordEvec(za, (ev#0)*(ev#1), algebra )
+            recordEvec(za, (ev#0)*(ev#1), algebra.evecs, algebra )
             );
-        for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
-        remove(algebra, temp);
         if member(howManyUnknowns algebra, {0,n}) then break;
         );
     )
