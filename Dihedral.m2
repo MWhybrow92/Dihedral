@@ -26,7 +26,7 @@ colReduce = M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the 
     return M_{i+1..m-1};
     )
 
-properSubsets = s -> select( subsets s, x -> x =!= {} and x =!= s );
+properSubsets = s -> select( subsets s, x -> x =!= set {} and x =!= s );
 
 --findBasis = mat -> mingens image mat;
 findBasis = mat -> colReduce mingens image mat;
@@ -258,8 +258,6 @@ findNullPolys = algebra -> (
 findNullVectors = algebra -> (
     while true do (
         n := howManyUnknowns algebra;
-        -- find new evecs
-        findNewEigenvectors(algebra, expand => false);
         -- intersect distinct eigenspaces
         print "Finding null vectors";
         pset := keys algebra.evecs;
@@ -267,9 +265,12 @@ findNullVectors = algebra -> (
         evalpairs = select(evalpairs, x -> not (isSubset(x#0,x#1) or isSubset(x#1, x#0)));
         for ev in evalpairs do (
             za := colReduce gens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
-            recordEvec(za, (ev#0)*(ev#1), algebra.evecs, algebra )
+            recordEvec(za, (ev#0)*(ev#1), algebra.evecs, algebra );
+            if howManyUnknowns algebra == 0 then return;
             );
-        if member(howManyUnknowns algebra, {0,n}) then break;
+        -- find new evecs
+        findNewEigenvectors(algebra, expand => false);
+        if member(howManyUnknowns algebra, {0,n}) then return;
         );
     )
 
@@ -327,6 +328,8 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
             quotientNullVec(algebra, algebra.nullspace_{j});
             );
         );
+    --print howManyUnknowns algebra;
+    --if howManyUnknowns algebra == 1 then error "";
     --remove (algebra, nullspace);
     )
 
