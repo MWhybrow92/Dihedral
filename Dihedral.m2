@@ -16,8 +16,7 @@ colReduce = M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the 
             a = position (0..i, l-> M_(l,j) != 0, Reverse => true);
             );
         if a === null then continue;
-        if c != 1 then c = sub(1/c, r);
-    	for l from 0 to n-1 do M_(i,l) = M_(i,l)*c;
+        if c != 1 then for l from 0 to n-1 do M_(i,l) = M_(i,l)*c^(-1);
     	for k from 0 to m-1 do rowAdd(M,k,-M_(k,j),i);
     	i = i-1;
 	);
@@ -369,8 +368,8 @@ quotientNullVec = (algebra, vec) -> (
     else entry = vec_(k,0);
     if algebra#?Intersect then error "";
     n := #algebra.span;
-    prod := standardAxialVector(k,n) - vec*(sub(1/entry, algebra.field));
-    vec = vec*sub(1/entry, algebra.field);
+    vec = vec*entry^(-1);
+    prod := standardAxialVector(k,n) - vec;
     z := zeroAxialVector n;
     for i in k+1 .. n-1 do (
         if i < #algebra.span then (
@@ -449,14 +448,13 @@ quotientAllPolyNullVecs = algebra -> (
 reduce = (u, v, k) -> u - v*u^{k}
 
 reduceMat = (u, mat) -> (
-    r := ring u;
     n := numgens image mat - 1;
     for i to n do (
         v := mat_{i};
         vec := entries v;
         k := last positions(vec, x -> x#0 != 0);
         entry := vec#k#0;
-        v = v*sub(1/entry, r);
+        v = v*entry^(-1);
         u = findBasis reduce(u, v, k);
         );
     return u;
