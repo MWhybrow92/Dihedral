@@ -197,8 +197,8 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
     a := sub(standardAxialVector(0, #algebra.span), algebra.field);
     for s in keys algebra.evecs do (
         for i to numgens source algebra.evecs#s - 1 do (
-            if i < numgens source algebra.evecs#s then (
-                for t in select(subsets s, x -> x =!= set {}) do (
+            for t in select(subsets s, x -> x =!= set {}) do (
+                if i < numgens source algebra.evecs#s then (
                     u := algebra.evecs#s_{i};
                     for ev in toList t do (
                         if opts.expand then (
