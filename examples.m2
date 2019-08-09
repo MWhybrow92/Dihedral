@@ -94,6 +94,11 @@ tkachev16 = n -> hashTable {
     {n, 1} => set {n}, {n, n} => set {1}
 }
 
+tkachev17 = n -> hashTable {
+    {1, 1} => set {1}, {1, n} => set {n},
+    {n, 1} => set {n}, {n, n} => set {1,n}
+}
+
 tkachev32 = hashTable {
     {1,1} => set {1}, {1,-1} => set {-1}, {1, 1/2} => set {1/2},
     {-1,1} => set {-1}, {-1,-1} => set {1}, {-1, 1/2} => set {1/2},
