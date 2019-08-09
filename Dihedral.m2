@@ -353,6 +353,10 @@ quotientNullVec = (algebra, vec) -> (
         );
     --if algebra.primitive then k := last select(nonzero, i -> #support vec#i#0 == 0)
     --else k = last nonzero;
+    if not isUnit vec#k#0 then (
+        print vec;
+        return;
+        );
     if k == 0 or k == 1 then ( -- algebra is zero
         algebra.span = {};
         algebra.products = new MutableList from {};
@@ -366,7 +370,6 @@ quotientNullVec = (algebra, vec) -> (
     vec = sub(matrix vec, algebra.field);
     if algebra.primitive then entry := sub(vec_(k,0), coefficientRing algebra.field)
     else entry = vec_(k,0);
-    if algebra#?Intersect then error "";
     n := #algebra.span;
     vec = vec*entry^(-1);
     prod := standardAxialVector(k,n) - vec;
