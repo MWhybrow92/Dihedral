@@ -1,7 +1,7 @@
 
 testFusion = algebra -> (
     a := standardAxialVector(0, #algebra.span);
-    I := ideal algebra.polynomials;
+    I := sub(ideal algebra.polynomials, algebra.field);
     for ev0 in algebra.evals do (
         for ev1 in algebra.evals do (
             for i to numgens source algebra.evecs#(set {ev0}) - 1 do (
