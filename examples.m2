@@ -10,6 +10,15 @@ MonsterTable = (a,b) -> hashTable {
     {a,1} => set {a}, {a,0} => set {a}, {a,a} => set {1,0}, {a,b} => set {b},
     {b,1} => set {b}, {b,0} => set {b}, {b,a} => set {b}, {b,b} => set {1, 0, a}
 }
+
+OtherMonsterTable = (a,b) -> hashTable {
+    {1,1} => set {1}, {1,a} => set {a}, {1,1/2} => set {1/2}, {1,b} => set {b},
+    {a,1} => set {a}, {a,a} => set {a}, {a,1/2} => set {1/2}, {a,b} => set {b},
+    {1/2,1} => set {1/2}, {1/2,a} => set {1/2}, {1/2,1/2} => set {1,a}, {1/2,b} => set {b},
+    {b,1} => set {b}, {b,a} => set {b}, {b,1/2} => set {b}, {b,b} => set {1, a, 1/2}
+}
+
+
 RestrictedMonsterTable = (a,b) -> hashTable {
     {1,1} => set {1}, {1,0} => set {}, {1,a} => set {a}, {1,b} => set {b},
     {0,1} => set {}, {0,0} => set {0}, {0,a} => set {a}, {0,b} => set {b},
