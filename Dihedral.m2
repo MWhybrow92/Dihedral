@@ -227,6 +227,7 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
 
 quotientNullPolynomials = algebra -> (
     if #algebra.polynomials == 0 then return;
+    algebra.polynomials  = apply( algebra.polynomials, p -> value apply(factor p, x -> x#0 ));
     I := ideal algebra.polynomials;
     for i to #algebra.products - 1 do (
         for j to #algebra.products - 1 do (
