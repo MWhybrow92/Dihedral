@@ -699,17 +699,17 @@ tauMaps = (algebra, plusEvals, minusEvals) -> (
     for ev in minusEvals do espace = espace | algebra.evecs#(set {ev});
     espace = espace_{1..n};
     for i to n - 1 do (
-        a = sub(standardAxialVector(i, n), algebra.field);
-        v = a//espace;
+        a := sub(standardAxialVector(i, n), algebra.field);
+        v := a//espace;
         v = v^{0..k-1} || -v^{k..n-1};
         mat0 = mat0 | (espace*v);
         );
     mat0 = mat0_{1..n};
     mat1 := new MutableMatrix from mat0;
-    f = findFlip algebra;
+    f := findFlip algebra;
     for i to n - 1 do (
         for j to n - 1 do (
-            im = f_{i,j};
+            im := f_{i,j};
             mat1_(im#0, im#1) = mat0_(i,j);
             );
         );
