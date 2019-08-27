@@ -65,11 +65,11 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true, eigenvalu
         algebra.evecs#ev = zeroAxialVector(n + 1);
         );
     evecs := findFirstEigenvectors(evals, algebra.field);
-    for i to n - 1 do algebra.evecs#(set {evals#i}) = algebra.evecs#(set {evals#i}) | (matrix evecs_{i});
+    for i to n - 1 do algebra.evecs#(set {evals#i}) = colReduce (algebra.evecs#(set {evals#i}) | (matrix evecs_{i}));
     -- If we assume primitivity then change the field to a polynomial ring
     if algebra.primitive then (
         changeRingOfAlgebra(algebra, algebra.field[symbol x, symbol y]);
-        vec := algebra.evecs#(set {ev})_{1} - x*sub(standardAxialVector(0,n + 1), ring(x));
+        vec := algebra.evecs#(set {ev})_{0} - x*sub(standardAxialVector(0,n + 1), ring(x));
         quotientNullspace (algebra, vec);
         n = #algebra.span;
         algebra.evecs#(set {ev}) = sub(standardAxialVector(0, n), algebra.field);
@@ -359,7 +359,6 @@ quotientNullVec = (algebra, vec) -> (
     --if algebra.primitive then k := last select(nonzero, i -> #support vec#i#0 == 0)
     --else k = last nonzero;
     if not isUnit vec#k#0 then (
-        print vec;
         return;
         );
     if k == 0 or k == 1 then ( -- algebra is zero
