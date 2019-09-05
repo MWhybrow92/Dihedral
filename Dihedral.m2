@@ -345,10 +345,12 @@ quotientNullVec = (algebra, vec) -> (
     if #nonzero == 0 then return;
     k := last nonzero;
     if algebra.primitive and #(set(support vec#k#0)*set(gens r)) > 0 then ( -- all poly mat
-        if all(nonzero, i -> i < 3) then (
-            polys := unique select(flatten vec, p -> #(set(support vec#k#0)*set(gens r)) > 0);
+        if k < 3 and #nonzero < 2 then (
+            print k;
+            print vec;
+            polys := unique flatten vec;
             polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
-            if #polys != #algebra.polynomials then (
+            if polys != algebra.polynomials then (
                 algebra.polynomials = polys;
                 quotientNullPolynomials algebra;
                 );
