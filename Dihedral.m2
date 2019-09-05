@@ -648,7 +648,6 @@ universalDihedralAlgebra = { field => QQ, primitive => true, form => true, eigen
         mainLoop algebra;
         print( "Time taken:", cpuTime() - t1 );
         );
-    if not testFusion algebra then mainLoop algebra;
     return algebra;
     )
 
@@ -678,7 +677,6 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true, eigenvalue =>
         newalgebra.polynomials = append(algebra.polynomials, y - x);
         quotientNullPolynomials newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
-        if not testFusion newalgebra then mainLoop newalgebra;
         algebras = append(algebras, newalgebra);
         print "Found new algebra";
         );
