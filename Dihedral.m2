@@ -2,7 +2,7 @@ load "examples.m2";
 load "testFusion.m2";
 
 colReduce = M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the transpose
-    r = ring M;
+    r := ring M;
     M = new MutableMatrix from transpose M;
     (m,n) := (numrows M, numcols M);
     i := m - 1; --row of pivot
@@ -61,16 +61,16 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true, eigenvalu
     for i in 1..n-1 do algebra.products#i#0 = sub(standardAxialVector(i + 1, n + 1), algebra.field);
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
-    for ev in (properSubsets evals)/set do (
-        algebra.evecs#ev = zeroAxialVector(n + 1);
+    for ev0 in (properSubsets evals)/set do (
+        algebra.evecs#ev0 = zeroAxialVector(n + 1);
         );
-    evecs := findFirstEigenvectors(evals, algebra.field);
-    for i to n - 1 do algebra.evecs#(set {evals#i}) = algebra.evecs#(set {evals#i}) | (matrix evecs_{i});
+    evecs := findFirstEigenvectors algebra;
     -- If we assume primitivity then change the field to a polynomial ring
     if algebra.primitive then (
         changeRingOfAlgebra(algebra, algebra.field[symbol x, symbol y]);
-        vec := algebra.evecs#(set {ev})_{1} - x*sub(standardAxialVector(0,n + 1), ring(x));
-        quotientNullspace (algebra, vec);
+        vec := algebra.evecs#(set {ev});
+        for ev0 in toList(set(algebra.evals) - {ev}) do vec = (ev-ev0)^(-1)*vec;
+        quotientNullspace (algebra, vec - x*sub(standardAxialVector(0,n + 1), ring(x)));
         n = #algebra.span;
         algebra.evecs#(set {ev}) = sub(standardAxialVector(0, n), algebra.field);
         )
@@ -253,7 +253,7 @@ findNullPolys = algebra -> (
     r := algebra.field;
     v := sub(standardAxialVector(0, #algebra.span), r);
     evals := select(algebra.evals, ev -> ev != algebra.eigenvalue);
-    za = findBasis gens intersect(image v, image algebra.temp#(set evals));
+    za := findBasis gens intersect(image v, image algebra.temp#(set evals));
     quotientNullVec(algebra, za);
     if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return true
     else return false;
@@ -278,13 +278,16 @@ findNullVectors = algebra -> (
         );
     )
 
-findFirstEigenvectors = (evals, field) -> (
-    n := #evals;
-    mat := toList apply( 0..n-1, i -> toList apply( 0..n-1, j -> (evals#i)^j ));
-    mat = matrix(field, mat);
-    mat = inverse mat;
-    z := transpose zeroAxialVector n;
-    z || mat
+findFirstEigenvectors = algebra -> (
+    n := #algebra.evals;
+    a0 := sub(standardAxialVector(0, n + 1), algebra.field);
+    for ev0 in algebra.evals do (
+        prod := sub(standardAxialVector(1, n + 1), algebra.field);
+        for ev1 in toList(set( algebra.evals ) - {ev0}) do (
+                prod = axialProduct(a0, prod, algebra.products) - ev1*prod;
+            );
+        algebra.evecs#(set {ev0}) = prod;
+        );
     )
 
 changeRingOfAlgebra = (algebra, r) -> (
