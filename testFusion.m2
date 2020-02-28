@@ -36,4 +36,16 @@ testIntersection = algebra -> (
             );
         );
     if mat == 0 then return true else return colReduce mat;
+
+    )
+
+testEvecs = algebra -> (
+    a := sub(standardAxialVector(0, #algebra.span), algebra.field);
+    for ev in algebra.evals do (
+        for i to numgens source algebra.evecs#(set {ev}) - 1 do (
+            u := algebra.evecs#(set {ev})_{i};
+            v := axialProduct(a, u, algebra.products);
+            if v =!= false and v - ev*u != 0 then "evecs error";
+            );
+        );
     )

@@ -33,24 +33,6 @@ properSubsets = s -> select( subsets s, x -> x =!= set {} and x =!= s );
 --findBasis = mat -> mingens image mat;
 findBasis = mat -> colReduce mingens image mat;
 
-usefulPairs = (evals, tbl) -> (
-    pset := properSubsets evals;
-    evalpairs := toList((set pset)**(set pset))/toList;
-    useful := {};
-    for p in evalpairs do (
-        rule := fusionRule(p#0, p#1, tbl);
-        if #rule < #evals then (
-            sets0 := select(pset, x -> isSubset(p#0, x) and x != p#0);
-            sets1 := select(pset, x -> isSubset(p#1, x) and x != p#1);
-            rules = apply(sets0, x -> fusionRule(x, p#1, tbl));
-            rules = rules | apply(sets1, x -> fusionRule(x, p#0, tbl));
-            if not member(rule, rules) then useful = append(useful, set(p/set));
-            );
-        );
-    useful = (unique useful)/toList;
-    return apply(useful, x -> if #x == 1 then {x#0, x#0} else x);
-    )
-
 fusionRule = (set0, set1, tbl) -> (
     rule := {};
     for ev0 in toList(set0) do (
@@ -545,16 +527,7 @@ performFlip = algebra -> (
         );
     )
 
-testEvecs = algebra -> (
-    a := sub(standardAxialVector(0, #algebra.span), algebra.field);
-    for ev in algebra.evals do (
-        for i to numgens source algebra.evecs#(set {ev}) - 1 do (
-            u := algebra.evecs#(set {ev})_{i};
-            v := axialProduct(a, u, algebra.products);
-            if v =!= false and v - ev*u != 0 then "evecs error";
-            );
-        );
-    )
+
 
 howManyUnknowns = algebra -> (
     n := #algebra.span;
