@@ -1,5 +1,7 @@
 
 testFusion = algebra -> (
+    mat := zeroAxialVector (#algebra.span);
+    for ev in keys algebra.evecs do algebra.evecs#ev = mingens image algebra.evecs#ev;
     a := standardAxialVector(0, #algebra.span);
     I := sub(ideal algebra.polynomials, algebra.field);
     for ev0 in algebra.evals do (
@@ -15,8 +17,23 @@ testFusion = algebra -> (
                         );
                     prod = prod % I;
                     if prod != 0 then error "fusion";
+                    --if prod != 0 then mat = mat | prod;
                     );
                 );
             );
         );
+    if mat == 0 then return true else return colReduce(mat);
+    )
+
+testIntersection = algebra -> (
+    mat := zeroAxialVector (#algebra.span);
+    for ev0 in keys algebra.evecs do (
+        for ev1 in keys algebra.evecs do (
+            if ev0*ev1 === set {} then (
+                za := colReduce gens intersect(image algebra.evecs#(ev0), image algebra.evecs#(ev1));
+                if za != 0 then mat = mat | za;
+                );
+            );
+        );
+    if mat == 0 then return true else return colReduce mat;
     )
