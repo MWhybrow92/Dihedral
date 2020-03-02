@@ -5,10 +5,10 @@ JordanTable = n -> hashTable {
     {n,1} => set {n}, {n,0} => set {n}, {n,n} => set {1,0}
 }
 MonsterTable = (a,b) -> hashTable {
-    {r#1,r#1} => set {r#1}, {r#1,r#0} => set {}, {r#1,a} => set {a}, {r#1,b} => set {b},
-    {r#0,r#1} => set {}, {r#0,r#0} => set {r#0}, {r#0,a} => set {a}, {r#0,b} => set {b},
-    {a,r#1} => set {a}, {a,r#0} => set {a}, {a,a} => set {r#1,r#0}, {a,b} => set {b},
-    {b,r#1} => set {b}, {b,r#0} => set {b}, {b,a} => set {b}, {b,b} => set {r#1, r#0, a}
+    {1,1} => set {1}, {1,0} => set {}, {1,a} => set {a}, {1,b} => set {b},
+    {0,1} => set {}, {0,0} => set {0}, {0,a} => set {a}, {0,b} => set {b},
+    {a,1} => set {a}, {a,0} => set {a}, {a,a} => set {1,0}, {a,b} => set {b},
+    {b,1} => set {b}, {b,0} => set {b}, {b,a} => set {b}, {b,b} => set {1, 0, a}
 }
 
 OtherMonsterTable = (a,b) -> hashTable {
