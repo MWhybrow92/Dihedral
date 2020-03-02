@@ -1,5 +1,6 @@
 load "examples.m2";
 load "testFusion.m2";
+load "setup.m2";
 
 -- Column reduces a matrices with entries in a ring
 
