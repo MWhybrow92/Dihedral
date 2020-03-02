@@ -1,5 +1,6 @@
 load "examples.m2";
 load "testFusion.m2";
+load "setup.m2"
 
 -- Column reduces a matrices with entries in a ring
 
@@ -19,7 +20,10 @@ colReduce = M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the 
             a = position (0..i, l-> M_(l,j) != 0, Reverse => true);
             );
         if a === null then continue;
-        if c != 1 then for l from 0 to n-1 do M_(i,l) = M_(i,l)*c^(-1);
+        if c != 1 then (
+            inv := c^(-1);
+            for l from 0 to n-1 do if M_(i,l) != 0 then M_(i,l) = M_(i,l)*inv;
+            );
     	for k from 0 to m-1 do rowAdd(M,k,-M_(k,j),i);
     	i = i-1;
 	);
