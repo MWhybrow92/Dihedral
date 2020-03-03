@@ -193,8 +193,8 @@ findNullVectors = algebra -> (
         for ev in evalpairs do (
             za := colReduce gens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
             recordEvec(za, (ev#0)*(ev#1), algebra.evecs, algebra );
-            if howManyUnknowns algebra == 0 then return;
             );
+        if howManyUnknowns algebra == 0 then return;
         -- find new evecs
         findNewEigenvectors(algebra, expand => false);
         if member(howManyUnknowns algebra, {0,n}) then return;
