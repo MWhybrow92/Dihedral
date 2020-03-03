@@ -4,25 +4,25 @@ load "setup.m2";
 
 -- Column reduces a matrices with entries in a ring
 
-colReduce = M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the transpose
+colReduce =  M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the transpose
     r := ring M;
-    M = new MutableMatrix from transpose M;
+    M = new MutableMatrix from transpose M; -- transpose the matrix
     (m,n) := (numrows M, numcols M);
-    i := m - 1; --row of pivot
-    for j in reverse (0 .. n-1) do (
-    	if i == -1 then break;
-    	a := position (0..i, l-> M_(l,j) != 0, Reverse => true);
+    i := m - 1; --row of pivot, starting from the bottom
+    for j in reverse (0 .. n-1) do ( -- run over the columns of the matrix, starting from the right
+    	if i == -1 then break; -- Then we've finished
+    	a := position (0..i, l-> M_(l,j) != 0, Reverse => true); -- Find first nonzero entry of jth column from the bottom
         while a =!= null do (
         	c := M_(a,j);
         	rowSwap(M,a,i);
-            if isUnit c then break;
-            i = i - 1;
+            if c == 1 or isUnit c then break; -- isUnit is expensive, but often c == 1 so check this first
+            i = i - 1; -- if c is not a unit then look at the next row
             a = position (0..i, l-> M_(l,j) != 0, Reverse => true);
             );
         if a === null then continue;
-        if c != 1 then for l from 0 to n-1 do M_(i,l) = M_(i,l)*c^(-1);
-    	for k from 0 to m-1 do rowAdd(M,k,-M_(k,j),i);
-    	i = i-1;
+        rowMult(M, i, c^(-1)); -- scale the pivot row
+    	for k from 0 to m-1 do if M_(k,j) !=0 then rowAdd(M,k,-M_(k,j),i); -- Subtract pivot row from *all* rows of matrix
+    	i = i - 1;
 	);
     M = transpose (new Matrix from M);
     M = map(r^n, r^m, M);
@@ -63,7 +63,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                             unknowns := findUnknowns(u, v, algebra.products);
                             expandAlgebra(algebra, unknowns);
                             );
-                        prod := axialProduct(u, v, algebra.products);
+                        prod := colReduce axialProduct(u, v, algebra.products);
                         if prod =!= false then recordEvec(prod, rule, algebra.temp, algebra);
                         if findNullPolys algebra then return;
                         );
@@ -80,7 +80,7 @@ recordEvec = (v, rule, evecs, algebra) -> (
     if rule === set {} then quotientNullspace (algebra, v)
     else (
         for s in keys evecs do (
-            if isSubset(rule, s) then evecs#s = findBasis (evecs#s|v);
+            if isSubset(rule, s) then evecs#s = findBasis (evecs#s|v); --TODO Move find basis to line
             );
         );
     )
@@ -193,8 +193,8 @@ findNullVectors = algebra -> (
         for ev in evalpairs do (
             za := colReduce gens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
             recordEvec(za, (ev#0)*(ev#1), algebra.evecs, algebra );
-            if howManyUnknowns algebra == 0 then return;
             );
+        if howManyUnknowns algebra == 0 then return;
         -- find new evecs
         findNewEigenvectors(algebra, expand => false);
         if member(howManyUnknowns algebra, {0,n}) then return;
