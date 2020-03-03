@@ -66,7 +66,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                             unknowns := findUnknowns(u, v, algebra.products);
                             expandAlgebra(algebra, unknowns);
                             );
-                        prod := axialProduct(u, v, algebra.products);
+                        prod := colReduce axialProduct(u, v, algebra.products);
                         if prod =!= false then recordEvec(prod, rule, algebra.temp, algebra);
                         if findNullPolys algebra then return;
                         );
