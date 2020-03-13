@@ -49,7 +49,7 @@ fusionRule = (set0, set1, tbl) -> (
 fusion = {expand => true} >> opts -> algebra -> (
     if opts.expand == true then print "Performing fusion with expansion"
     else print "Performing fusion without expansion";
-    r := algebra.field;
+    r := algebra.coordring;
     algebra.temp = copy algebra.evecs;
     for p in algebra.usefulpairs do (
         rule := fusionRule(p#0, p#1, algebra.tbl);
@@ -109,7 +109,7 @@ expandAlgebra = (algebra, unknowns) -> (
     if algebra#?nullspace then algebra.nullspace = expandVector(algebra.nullspace, k);
     for i to k - 1 do (
         x := unknowns#i;
-        algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n + i, n + k), algebra.field);
+        algebra.products#(x#0)#(x#1) = sub(standardAxialVector(n + i, n + k), algebra.coordring);
         algebra.products#(x#1)#(x#0) = algebra.products#(x#0)#(x#1);
         );
     algebra.span = algebra.span | unknowns;
@@ -118,7 +118,7 @@ expandAlgebra = (algebra, unknowns) -> (
 findNewEigenvectors = {expand => true} >> opts -> algebra -> (
     if opts.expand then print "Finding new eigenvectors with expansion"
     else print "Finding new eigenvectors without expansion";
-    a := sub(standardAxialVector(0, #algebra.span), algebra.field);
+    a := sub(standardAxialVector(0, #algebra.span), algebra.coordring);
     for s in keys algebra.evecs do (
         for i to numgens source algebra.evecs#s - 1 do (
             for t in select(subsets s, x -> x =!= set {}) do (
@@ -171,7 +171,7 @@ quotientNullPolynomials = algebra -> (
 
 findNullPolys = algebra -> (
     -- A bit patchy to catch null polynomials
-    r := algebra.field;
+    r := algebra.coordring;
     v := sub(standardAxialVector(0, #algebra.span), r);
     evals := select(algebra.evals, ev -> ev != algebra.eigenvalue);
     za := findBasis gens intersect(image v, image algebra.temp#(set evals));
@@ -200,7 +200,7 @@ findNullVectors = algebra -> (
     )
 
 changeRingOfAlgebra = (algebra, r) -> (
-    algebra.field = r;
+    algebra.coordring = r;
     n := #algebra.products;
     -- Change the algebra products
     for i to n-1 do (
@@ -248,7 +248,7 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
 
 quotientNullVec = (algebra, vec) -> (
     if vec == 0 then return;
-    r := algebra.field;
+    r := algebra.coordring;
     vec = entries vec;
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
@@ -282,8 +282,8 @@ quotientNullVec = (algebra, vec) -> (
             );
         return;
         );
-    vec = sub(matrix vec, algebra.field);
-    if algebra.primitive then entry := sub(vec_(k,0), coefficientRing algebra.field)
+    vec = sub(matrix vec, algebra.coordring);
+    if algebra.primitive then entry := sub(vec_(k,0), coefficientRing algebra.coordring)
     else entry = vec_(k,0);
     n := #algebra.span;
     vec = vec*entry^(-1);
@@ -307,7 +307,7 @@ quotientNullVec = (algebra, vec) -> (
                 --n = #algebra.span;
                 --if algebra#?one and #algebra.span == 9 then error "";
                 --quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
-                z = z | (sub(standardAxialVector(i,n), algebra.field) - newProd);
+                z = z | (sub(standardAxialVector(i,n), algebra.coordring) - newProd);
                 );
             );
         );
@@ -443,7 +443,7 @@ findFlip = algebra -> (
 -- this is elegant but not convinced it is correct
 imageFlip = (i, f, algebra) -> (
     n := #algebra.span;
-    if f_i =!= null then return sub(standardAxialVector(f_i, n), algebra.field);
+    if f_i =!= null then return sub(standardAxialVector(f_i, n), algebra.coordring);
     x := algebra.span#i;
     im0 := f_(x#0);
     im1 := f_(x#1);
@@ -454,24 +454,34 @@ imageFlip = (i, f, algebra) -> (
         return algebra.products#im0#im1;
         );
     if im0 === null then im0 = imageFlip(x#0, f, algebra)
-    else im0 =  sub(standardAxialVector(im0, n), algebra.field);
+    else im0 =  sub(standardAxialVector(im0, n), algebra.coordring);
     if im0 === false then return false;
     if im1 === null then im1 = imageFlip(x#1, f, algebra)
-    else im1 =  sub(standardAxialVector(im1, n), algebra.field);
+    else im1 =  sub(standardAxialVector(im1, n), algebra.coordring);
     if im1 === false then return false;
     unknowns := findUnknowns (im0, im1, algebra.products);
     expandAlgebra (algebra, unknowns);
     return axialProduct(im0, im1, algebra.products);
     )
 
-flipVector = (vec, algebra) -> (
+flipPoly = (poly, k) -> (
+    for i to k - 1 do (
+
+        )
+    )
+
+flipVector = {form => true} >> opts -> (vec, algebra) -> (
     f := findFlip algebra;
     r := ring vec;
     v := flatten entries vec;
-    if algebra.primitive then v = apply( v, p -> sub(p, {r_0 => r_1, r_1 => r_0}));
-    if #algebra.polynomials > 0 then (
-        v = apply( v, p -> p % (ideal algebra.polynomials));
+    -- If we are not assuming a form then the flip switches the indeterminates of the coord ring
+    if not opts.form then (
+        k := numgens algebra.coordring - numgens algebra.field;
+        for i to k/2 - 1 do (
+            apply(v, p -> sub(p, {r_i => r_(i + k/2), r_(i + k/2) => i} ));
+            );
         );
+    -- Now flip the coordinates
     res := sub(zeroAxialVector(#v), r);
     for i in positions(v, x -> x !=0 ) do (
         im := imageFlip(i, f, algebra);
@@ -496,7 +506,7 @@ howManyUnknowns = algebra -> (
     )
 
 mainLoop = algebra -> (
-    r := algebra.field;
+    r := algebra.coordring;
     ind := set(gens r);
     while true do (
         n := howManyUnknowns algebra;
@@ -504,10 +514,10 @@ mainLoop = algebra -> (
         findNullVectors algebra;
         print (n, howManyUnknowns algebra);
         if member(howManyUnknowns algebra, {0,n}) then break;
-        if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return;
+        if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return; -- TODO Move this to a new function?
         );
     fusion algebra;
-    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return;
+    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return; -- TODO Do we need these two here? Might be more efficient without
     findNullVectors algebra;
     if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return;
     )
@@ -524,7 +534,7 @@ universalDihedralAlgebra = { field => QQ, primitive => true, form => true, eigen
 
 dihedralAlgebras = { field => QQ, primitive => true, form => true, eigenvalue => 1 } >> opts -> (evals, tbl) -> (
     algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form, eigenvalue => opts.eigenvalue);
-    r := algebra.field;
+    r := algebra.coordring;
     ind := set(gens r);
     if #ind > 0 then algebra.polys = true;
     while howManyUnknowns algebra > 0 do (
@@ -537,14 +547,14 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true, eigenvalue =>
     algebras := {};
     p := (select(algebra.polynomials, x -> #(set(support x)*ind) == 1))#0;
     y := (toList(set(support p)*ind))#0;
-    r = coefficientRing(algebra.field)[y];
+    r = coefficientRing(algebra.coordring)[y];
     p = sub(p, r);
-    vals := (roots p)/(x -> x^(coefficientRing(algebra.field)));
+    vals := (roots p)/(x -> x^(coefficientRing(algebra.coordring)));
     --for x in select(vals, x -> x != 0) do (
     for x in unique(vals) do (
         print ("Using value", x);
         newalgebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
-        changeRingOfAlgebra(newalgebra, algebra.field);
+        changeRingOfAlgebra(newalgebra, algebra.coordring);
         newalgebra.polynomials = append(algebra.polynomials, y - x);
         quotientNullPolynomials newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
@@ -556,7 +566,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true, eigenvalue =>
 
 testPolynomial = algebra -> (
     n := #algebra.span;
-    v := sub(standardAxialVector(0, n), algebra.field);
+    v := sub(standardAxialVector(0, n), algebra.coordring);
     evals := select(algebra.evals, ev -> ev != 1);
     evals = select(evals, ev -> numgens intersect(image algebra.temp#(set {ev}), image v) > 0);
     if #evals > 0 then error "0";
@@ -571,7 +581,7 @@ tauMaps = (algebra, plusEvals, minusEvals) -> (
     for ev in minusEvals do espace = espace | algebra.evecs#(set {ev});
     espace = espace_{1..n};
     for i to n - 1 do (
-        a := sub(standardAxialVector(i, n), algebra.field);
+        a := sub(standardAxialVector(i, n), algebra.coordring);
         v := a//espace;
         v = v^{0..k-1} || -v^{k..n-1};
         mat0 = mat0 | (espace*v);
