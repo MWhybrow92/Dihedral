@@ -201,18 +201,6 @@ findNullVectors = algebra -> (
         );
     )
 
-findFirstEigenvectors = algebra -> (
-    n := #algebra.evals;
-    a0 := sub(standardAxialVector(0, n + 1), algebra.field);
-    for ev0 in algebra.evals do (
-        prod := sub(standardAxialVector(1, n + 1), algebra.field);
-        for ev1 in toList(set( algebra.evals ) - {ev0}) do (
-                prod = axialProduct(a0, prod, algebra.products) - ev1*prod;
-            );
-        algebra.evecs#(set {ev0}) = prod;
-        );
-    )
-
 changeRingOfAlgebra = (algebra, r) -> (
     algebra.field = r;
     n := #algebra.products;
@@ -597,7 +585,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true, eigenvalue =>
         algebras = append(algebras, newalgebra);
         print "Found new algebra";
         );
-    return {algebras, vals}
+    return hashTable{"algebras" => algebras, "values" => vals};
     )
 
 testPolynomial = algebra -> (
