@@ -72,7 +72,6 @@ fusion = {expand => true} >> opts -> algebra -> (
             );
         for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
         remove(algebra, temp);
-        --performFlip algebra;
     )
 
 recordEvec = (v, rule, evecs, algebra) -> (
@@ -145,7 +144,6 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
             );
         );
     for s in keys algebra.evecs do algebra.evecs#s = findBasis algebra.evecs#s;
-    --performFlip algebra;
     )
 
 quotientNullPolynomials = algebra -> (
@@ -488,35 +486,6 @@ flipVector = (vec, algebra) -> (
         );
     res
     )
-
-performFlip = algebra -> (
-    n := #algebra.span;
-    -- might need to be more careful with the indices if a nullspace vec occurs here
-    for i to n -1 do (
-        for j to n - 1 do (
-            if i < #algebra.products and j < #algebra.products then (
-                f := findFlip algebra;
-                im := f_{i,j};
-                --if not member(null, im) and algebra.products#i#j =!= false then (
-                if algebra.products#i#j =!= false then (
-                    if member(null, im) then error "Can't perform flip";
-                    vec := flipVector(algebra.products#i#j, algebra);
-                    if vec =!= false then (
-                        if algebra.products#(im#0)#(im#1) === false then (
-                            algebra.products#(im#0)#(im#1) = vec;
-                            algebra.products#(im#1)#(im#0) = vec;
-                            )
-                        else if vec != algebra.products#(im#0)#(im#1) then (
-                            quotientNullspace (algebra, vec-algebra.products#(im#0)#(im#1));
-                            );
-                        );
-                    );
-                );
-            );
-        );
-    )
-
-
 
 howManyUnknowns = algebra -> (
     n := #algebra.span;
