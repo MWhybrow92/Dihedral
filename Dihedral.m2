@@ -244,9 +244,6 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
             quotientNullVec(algebra, algebra.nullspace_{j});
             );
         );
-    --print howManyUnknowns algebra;
-    --if howManyUnknowns algebra == 1 then error "";
-    --remove (algebra, nullspace);
     )
 
 quotientNullVec = (algebra, vec) -> (
