@@ -2,33 +2,31 @@ load "Dihedral.m2";
 load "examples.m2";
 load "testFusion.m2"
 
-evals = {1, 0, 100};
-tbl = JordanTable 100;
+-- Test Jordan 1/4
+
+evals = {1, 0, 1/4};
+tbl = JordanTable (1/4);
+algebras = dihedralAlgebras (evals, tbl, form => false);
+
+test = apply(algebras#0, x -> testFusion x);
+if test != {true, true, true} then error "Jordan 1/4";
+
+test = apply(algebras#0, x -> #x.span);
+if set test != set {2, 3, 0} then error "Jordan 1/4";
+
+algebra = universalDihedralAlgebra (evals, tbl, primitive => false);
+testFusion algebra;
+
+-- Test Jordan 1/2
+
+evals = {1, 0, 1/2};
+tbl = JordanTable (1/2);
+
 algebra = universalDihedralAlgebra (evals, tbl, form => false);
+testFusion algebra;
 
-if #algebra.span != 3 then error "Jordan";
+-- Test Monster
 
-r = QQ[n, m, p];
-I = ideal {n*m - 1, (n - 1)*p - 1};
-r = r/I;
-
-n = r_0;
-m = r_1;
-p = r_2;
-
-evals = {1, 0, n};
-tbl = JordanTable n;
-
-algebra = universalDihedralAlgebra (evals, tbl, field => r);
-
--- This is erroring :(
-
---evals = {1, 0, 2, 3};
---tbl = MonsterTable(2,3);
-
---algebra = universalDihedralAlgebra(evals, tbl);
-
---algebra.span;
-
-
--- I'll finish this when I work out what the right answer is!
+evals = {1, 0, 1/4, 1/32};
+tbl = MonsterTable( 1/4, 1/32 );
+algebra = universalDihedralAlgebra (evals, tbl, form => true);
