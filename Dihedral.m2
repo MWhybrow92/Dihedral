@@ -65,7 +65,6 @@ fusion = {expand => true} >> opts -> algebra -> (
                             );
                         prod := colReduce axialProduct(u, v, algebra.products);
                         if prod =!= false then recordEvec(prod, rule, algebra.temp, algebra);
-                        findNullPolys algebra;
                         );
                     );
                 );
@@ -177,7 +176,7 @@ findNullPolys = algebra -> (
     r := algebra.coordring;
     v := sub(standardAxialVector(0, #algebra.span), r);
     evals := select(algebra.evals, ev -> ev != algebra.eigenvalue);
-    za := findBasis gens intersect(image v, image algebra.temp#(set evals));
+    za := findBasis gens intersect(image v, image algebra.evecs#(set evals));
     quotientNullVec(algebra, za);
     )
 
@@ -527,7 +526,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
 
     -- Might need to go looking for more polynomials
     -- TODO This takes too long, replace with findNullPolys?
-    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then fusion algebra;
+    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then findNullPolys algebra;
     -- If still none then return
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then (
         print "Warning: could not find dihedral algebras";
@@ -547,10 +546,11 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         print ("Using value", x);
         -- Make the new algebra
         newalgebra := new MutableHashTable from {};
+        for key in keys algebra do newalgebra#key = algebra#key;
         newalgebra.evecs = copy algebra.evecs;
-        for key in keys algebra do (
-            if key != evecs then newalgebra#key = algebra#key;
-            );
+        newalgebra.products = new MutableList from {};
+        for i to #algebra.span - 1 do newalgebra.products#i = copy algebra.products#i;
+        -- Use the root x
         newalgebra.polynomials = append(algebra.polynomials, y - x);
         quotientNullPolynomials newalgebra;
         findNullVectors newalgebra;
