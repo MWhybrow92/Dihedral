@@ -146,6 +146,10 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
     for s in keys algebra.evecs do algebra.evecs#s = findBasis algebra.evecs#s;
     )
 
+--TODO A big one
+-- Work out how to reduce the number of indeterminates of the poly ring when we
+-- quotient null polys
+
 quotientNullPolynomials = algebra -> (
     if #algebra.polynomials == 0 then return;
     algebra.polynomials  = apply( algebra.polynomials, p -> value apply(factor p, x -> x#0 ));
@@ -252,8 +256,6 @@ quotientNullVec = (algebra, vec) -> (
     k := last nonzero;
     if algebra.primitive and #(set(support vec#k#0)*set(gens r)) > 0 then ( -- all poly mat
         if k < 3 and #nonzero < 2 then (
-            print k;
-            print vec;
             polys := unique flatten vec;
             polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
             if polys != algebra.polynomials then (
@@ -524,6 +526,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     if #ind == 0 then return universalDihedralAlgebra(evals, tbl, opts);
 
     -- Might need to go looking for more polynomials
+    -- TODO This takes too long, replace with findNullPolys?
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then fusion algebra;
     -- If still none then return
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then (
