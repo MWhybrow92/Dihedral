@@ -79,7 +79,7 @@ recordEvec = (v, rule, evecs, algebra) -> (
     if rule === set {} then quotientNullspace (algebra, v)
     else (
         for s in keys evecs do (
-            if isSubset(rule, s) then evecs#s = findBasis (evecs#s|v); --TODO Move find basis to line
+            if isSubset(rule, s) then evecs#s = findBasis (evecs#s|v);
             );
         );
     )
@@ -166,7 +166,6 @@ quotientNullPolynomials = algebra -> (
             );
         );
     if algebra#?nullspace then algebra.nullspace = algebra.nullspace % I;
-    --algebra.allpolynullvecs = algebra.allpolynullvecs % I;
     )
 
 findNullPolys = algebra -> (
@@ -265,8 +264,6 @@ quotientNullVec = (algebra, vec) -> (
             )
         else return false;
         );
-    --if algebra.primitive then k := last select(nonzero, i -> #support vec#i#0 == 0)
-    --else k = last nonzero;
     if not isUnit vec#k#0 then (
         return;
         );
@@ -296,15 +293,9 @@ quotientNullVec = (algebra, vec) -> (
                 if x#1 == k then v := prod
                 else v = standardAxialVector(x#1,n);
                 unknowns := findUnknowns(u, v, algebra.products);
-                --if #unknowns > 0 then print ("Expanding in quotient func", i, n);
-                --if #unknowns > 0 then print unknowns;
                 if #unknowns > 0 then return false;
-                --expandAlgebra(algebra, unknowns);
                 newProd := axialProduct(u, v, algebra.products);
                 if newProd !=0 and newProd_(i, 0) == 1 then return false; -- cannot find quotient
-                --n = #algebra.span;
-                --if algebra#?one and #algebra.span == 9 then error "";
-                --quotientNullVec(algebra, standardAxialVector(i,n) - newProd);
                 z = z | (sub(standardAxialVector(i,n), algebra.coordring) - newProd);
                 );
             );
@@ -337,15 +328,11 @@ quotientNullVec = (algebra, vec) -> (
             algebra.temp#ev = findBasis algebra.temp#ev;
             );
         );
-    --if algebra#?allpolynullvecs then (
-    --    algebra.allpolynullvecs = (reduce(algebra.allpolynullvecs, vec, k))^reduction;
-    --    );
     if algebra#?nullspace then (
         algebra.nullspace = (reduce(algebra.nullspace, vec, k))^reduction;
         );
     algebra.span = drop(algebra.span, {k,k});
     n = #algebra.span;
-    --if any(algebra.span, x -> not member(x, {0,1}) and algebra.products#(x#0)#(x#1) === false) then error "another problem";
     if any(toList (2..n-1), i -> member(i, algebra.span#i)) then error "here";
     )
 
@@ -569,15 +556,6 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         print "Found new algebra";
         );
     return hashTable{algebras => algs, values => vals};
-    )
-
--- Some debugging function?
-testPolynomial = algebra -> (
-    n := #algebra.span;
-    v := sub(standardAxialVector(0, n), algebra.coordring);
-    evals := select(algebra.evals, ev -> ev != 1);
-    evals = select(evals, ev -> numgens intersect(image algebra.temp#(set {ev}), image v) > 0);
-    if #evals > 0 then error "0";
     )
 
 tauMaps = (algebra, plusEvals, minusEvals) -> (
