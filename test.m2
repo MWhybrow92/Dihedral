@@ -8,11 +8,11 @@ evals = {1, 0, 1/4};
 tbl = JordanTable (1/4);
 algs = dihedralAlgebras (evals, tbl, form => false);
 
-test = apply(algs.algebras, x -> testFusion x);
-if test != {true, true, true} then error "Jordan 1/4";
-
 test = apply(algs.algebras, x -> #x.span);
 if set test != set {2, 3, 0} then error "Jordan 1/4";
+
+test = apply(algs.algebras, x -> testFusion x);
+if test != {true, true, true} then error "Jordan 1/4";
 
 algebra = universalDihedralAlgebra (evals, tbl, primitive => false);
 testFusion algebra;
@@ -29,4 +29,9 @@ testFusion algebra;
 
 evals = {1, 0, 1/4, 1/32};
 tbl = MonsterTable( 1/4, 1/32 );
-algebra = universalDihedralAlgebra (evals, tbl, form => true);
+algs = dihedralAlgebras (evals, tbl);
+
+test = apply(algs.algebras, x -> #x.span);
+if set test != set {2, 8, 8, 6, 5, 4, 3, 0} then error "Monster";
+
+apply(algs.algebras, x -> testFusion x);
