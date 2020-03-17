@@ -59,7 +59,6 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true, eigenvalu
 
 properSubsets = s -> select( subsets s, x -> #x > 0 and x != s );
 
-
 -- Using HRS15 Lemma 5.3
 findFirstEigenvectors = algebra -> (
     n := #algebra.evals;
@@ -73,12 +72,14 @@ findFirstEigenvectors = algebra -> (
         );
     )
 
+-- Add indeterminates to ring in order to quotient a 1-eigenvector
 extendedRing = { form => true } >> opts -> algebra -> (
     n := numgens algebra.coordring - numgens algebra.field;
     if opts.form then return algebra.field[ apply (0..n, i -> "x"|i)]
     else return algebra.field[ apply (0..n, i -> "x"|i) | apply (0..n, i -> "y"|i) ];
     )
 
+-- Special procedure to quotient a 1-eigenvector in the primitive case
 quotientOneEigenvector = { form => true } >> opts -> (algebra, v) -> (
     changeRingOfAlgebra(algebra, extendedRing (algebra, form => opts.form) );
     n := #algebra.evals;
@@ -86,6 +87,7 @@ quotientOneEigenvector = { form => true } >> opts -> (algebra, v) -> (
     quotientNullspace (algebra, v);
     )
 
+-- Finds useful pairs as defined in expansion algorithm paper
 usefulPairs = (evals, tbl) -> (
     pset := properSubsets evals;
     evalpairs := toList((set pset)**(set pset))/toList;
