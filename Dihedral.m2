@@ -29,8 +29,6 @@ colReduce =  M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the
     return M_{i+1..m-1};
     )
 
-properSubsets = s -> select( subsets s, x -> x =!= set {} and x =!= s );
-
 --findBasis = mat -> mingens image mat;
 findBasis = mat -> colReduce mingens image mat;
 
