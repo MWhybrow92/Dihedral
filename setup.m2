@@ -31,21 +31,23 @@ dihedralAlgebraSetup = { field => QQ, primitive => true, form => true, eigenvalu
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
     findFirstEigenvectors algebra;
+
     if algebra.primitive then (
         -- Scale the eigenvector so that x0 = (a0, a1)
         for x in toList(set(algebra.evals) - {ev}) do (
             algebra.evecs#(set {ev}) = (1/(ev-x))*algebra.evecs#(set {ev});
         );
         quotientOneEigenvector ( algebra, algebra.evecs#(set {ev}), form => opts.form );
-        n = n - 1;
     );
 
-    algebra.evecs#(set {ev}) = standardAxialVector(0,n + 1) | algebra.evecs#(set {ev});
+    n = #algebra.span;
+    algebra.evecs#(set {ev}) = standardAxialVector(0,n) | algebra.evecs#(set {ev});
+    algebra.evecs#(set {ev}) = findBasis algebra.evecs#( set {ev} );
 
     -- Build the full eigenspaces
     for s in (properSubsets evals )/set do (
         if #(toList s) > 1 then (
-            algebra.evecs#s = zeroAxialVector(n + 1);
+            algebra.evecs#s = zeroAxialVector n;
             for ev in (toList s) do (
                 algebra.evecs#s = algebra.evecs#s|algebra.evecs#(set {ev});
                 );
@@ -81,7 +83,7 @@ quotientOneEigenvector = { form => true } >> opts -> (algebra, v) -> (
     changeRingOfAlgebra(algebra, extendedRing (algebra, form => opts.form) );
     n := #algebra.evals;
     v = v - x0*sub(standardAxialVector(0,n + 1), ring(x0));
-    quotientNullspace (algebra, v, Flip => false);
+    quotientNullspace (algebra, v);
     )
 
 usefulPairs = (evals, tbl) -> (
