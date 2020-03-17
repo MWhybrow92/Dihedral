@@ -1,3 +1,5 @@
+dihedralOpts = { field => QQ, primitive => true, form => true, eigenvalue => 1 };
+
 load "examples.m2";
 load "testFusion.m2";
 load "setup.m2";
@@ -520,8 +522,8 @@ mainLoop = algebra -> (
     if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return;
     )
 
-universalDihedralAlgebra = { field => QQ, primitive => true, form => true, eigenvalue => 1 } >> opts -> (evals, tbl) -> (
-    algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form, eigenvalue => opts.eigenvalue);
+universalDihedralAlgebra = dihedralOpts >> opts -> (evals, tbl) -> (
+    algebra := dihedralAlgebraSetup(evals, tbl, opts);
     while howManyUnknowns algebra > 0 do (
         t1 := cpuTime();
         mainLoop algebra;
@@ -530,8 +532,8 @@ universalDihedralAlgebra = { field => QQ, primitive => true, form => true, eigen
     return algebra;
     )
 
-dihedralAlgebras = { field => QQ, primitive => true, form => true, eigenvalue => 1 } >> opts -> (evals, tbl) -> (
-    algebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form, eigenvalue => opts.eigenvalue);
+dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
+    algebra := dihedralAlgebraSetup(evals, tbl, opts);
     r := algebra.coordring;
     ind := set(gens r);
     if #ind > 0 then algebra.polys = true;
@@ -542,7 +544,7 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true, eigenvalue =>
         print( "Time taken:", cpuTime() - t1 );
         );
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then fusion algebra;
-    algebras := {};
+    algs := {};
     p := (select(algebra.polynomials, x -> #(set(support x)*ind) == 1))#0;
     y := (toList(set(support p)*ind))#0;
     r = coefficientRing(algebra.coordring)[y];
@@ -556,10 +558,10 @@ dihedralAlgebras = { field => QQ, primitive => true, form => true, eigenvalue =>
         newalgebra.polynomials = append(algebra.polynomials, y - x);
         quotientNullPolynomials newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
-        algebras = append(algebras, newalgebra);
+        algs = append(algs, newalgebra);
         print "Found new algebra";
         );
-    return hashTable{"algebras" => algebras, "values" => vals};
+    return hashTable{algebras => algs, values => vals};
     )
 
 testPolynomial = algebra -> (

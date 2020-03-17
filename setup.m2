@@ -2,7 +2,7 @@
 zeroAxialVector = (n) -> transpose matrix { toList(n:0) }
 standardAxialVector = (i, n) -> transpose matrix { toList( splice( (i:0, 1, n-i-1:0) ) ) }
 
-dihedralAlgebraSetup = { field => QQ, primitive => true, form => true, eigenvalue => 1 } >> opts -> (evals, tbl) -> (
+dihedralAlgebraSetup = dihedralOpts >> opts -> (evals, tbl) -> (
 
     n := #evals;
 
