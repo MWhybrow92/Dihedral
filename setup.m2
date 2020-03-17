@@ -3,47 +3,60 @@ zeroAxialVector = (n) -> transpose matrix { toList(n:0) }
 standardAxialVector = (i, n) -> transpose matrix { toList( splice( (i:0, 1, n-i-1:0) ) ) }
 
 dihedralAlgebraSetup = { field => QQ, primitive => true, form => true, eigenvalue => 1 } >> opts -> (evals, tbl) -> (
+
     n := #evals;
+
     -- Set up algebra hash table
-    algebra := new MutableHashTable from {symbol evals => evals, symbol tbl => tbl};
+    algebra := new MutableHashTable;
+    algebra.evals = evals;
+    algebra.tbl = tbl;
     algebra.usefulpairs = usefulPairs(evals, tbl);
     for key in keys opts do algebra#key = opts#key;
     algebra.coordring = opts.field;
     algebra.polynomials = {};
     algebra.polys = false;
-    --algebra.allpolynullvecs = sub( zeroAxialVector (n + 1), algebra.field );
+    ev := algebra.eigenvalue;
     algebra.span = {0,1} | apply(toList(1..n-1), x -> {0,x});
+
     -- Add products as list of lists
     algebra.products = new MutableList from {};
     for i to n do (
         algebra.products#i = new MutableList from {};
         for j to n do algebra.products#i#j = false;
         );
-    ev := algebra.eigenvalue;
-    for i to 1 do algebra.products#i#i = ev*sub(standardAxialVector(i, n + 1), algebra.coordring);
+    for i to 1 do algebra.products#i#i = ev*sub(standardAxialVector(i, n + 1), algebra.coordring); -- Then add known products
     for i in 1..n-1 do algebra.products#0#i = sub(standardAxialVector(i + 1, n + 1), algebra.coordring);
     for i in 1..n-1 do algebra.products#i#0 = sub(standardAxialVector(i + 1, n + 1), algebra.coordring);
+
     -- Add first eigenvectors
     algebra.evecs = new MutableHashTable;
-    for ev0 in (properSubsets evals)/set do (
-        algebra.evecs#ev0 = zeroAxialVector(n + 1);
-        );
-    evecs := findFirstEigenvectors algebra;
+    findFirstEigenvectors algebra;
     if algebra.primitive then (
-        quotientOneEigenvector ( algebra, algebra.evecs#(set {ev}), form => opts.form )
+        -- Scale the eigenvector so that x0 = (a0, a1)
+        for x in toList(set(algebra.evals) - {ev}) do (
+            algebra.evecs#(set {ev}) = (1/(ev-x))*algebra.evecs#(set {ev});
         );
-    algebra.evecs#(set {ev}) = sub(standardAxialVector(0,n + 1), ring(x0)) | algebra.evecs#(set {ev});
+        quotientOneEigenvector ( algebra, algebra.evecs#(set {ev}), form => opts.form );
+        n = n - 1;
+    );
+
+    algebra.evecs#(set {ev}) = standardAxialVector(0,n + 1) | algebra.evecs#(set {ev});
+
     -- Build the full eigenspaces
-    for s in keys algebra.evecs do (
+    for s in (properSubsets evals )/set do (
         if #(toList s) > 1 then (
+            algebra.evecs#s = zeroAxialVector(n + 1);
             for ev in (toList s) do (
                 algebra.evecs#s = algebra.evecs#s|algebra.evecs#(set {ev});
                 );
+            algebra.evecs#s = findBasis algebra.evecs#s;
             );
-        algebra.evecs#s = findBasis algebra.evecs#s;
         );
     algebra
     )
+
+properSubsets = s -> select( subsets s, x -> #x > 0 and x != s );
+
 
 -- Using HRS15 Lemma 5.3
 findFirstEigenvectors = algebra -> (
@@ -56,8 +69,6 @@ findFirstEigenvectors = algebra -> (
             );
         algebra.evecs#(set {ev0}) = prod;
         );
-    -- Need to also add the axis as its own ev-eigenvector
-    algebra.evecs#(set {ev}) = standardAxialVector(0, n + 1)|algebra.evecs#(set {ev});
     )
 
 extendedRing = { form => true } >> opts -> algebra -> (
@@ -67,10 +78,10 @@ extendedRing = { form => true } >> opts -> algebra -> (
     )
 
 quotientOneEigenvector = { form => true } >> opts -> (algebra, v) -> (
-        changeRingOfAlgebra(algebra, extendedRing (algebra, form => opts.form) );
-        for ev0 in toList(set(algebra.evals) - {ev}) do vec = (ev-ev0)^(-1)*v; -- TODO This scales the vector, where is best to do this? Think it forces x0 = (a0, a1)
-        v = v - x0*sub(standardAxialVector(0,n + 1), ring(x0));
-        quotientNullspace (algebra, v, Flip => false); -- TODO Flip this? Probably not
+    changeRingOfAlgebra(algebra, extendedRing (algebra, form => opts.form) );
+    n := #algebra.evals;
+    v = v - x0*sub(standardAxialVector(0,n + 1), ring(x0));
+    quotientNullspace (algebra, v, Flip => false);
     )
 
 usefulPairs = (evals, tbl) -> (
