@@ -533,30 +533,42 @@ universalDihedralAlgebra = dihedralOpts >> opts -> (evals, tbl) -> (
     )
 
 dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
-    algebra := dihedralAlgebraSetup(evals, tbl, opts);
+    -- Construct the whole universal algebra
+    algebra := universalDihedralAlgebra(evals, tbl, opts);
+
+    -- Find the indeterminates of the algebra, if none then return universal algebra
     r := algebra.coordring;
     ind := set(gens r);
-    if #ind > 0 then algebra.polys = true;
-    while howManyUnknowns algebra > 0 do (
-        t1 := cpuTime();
-        mainLoop algebra;
-        if any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then break;
-        print( "Time taken:", cpuTime() - t1 );
-        );
+    if #ind == 0 then return universalDihedralAlgebra(evals, tbl, opts);
+
+    -- Might need to go looking for more polynomials
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then fusion algebra;
-    algs := {};
+    -- If still none then return
+    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then (
+        print "Warning: could not find dihedral algebras";
+        return hashTable{algebras => {algebra}, values => {}};
+        );
+
+    -- Find the roots of the (first) null univariate polynomial
     p := (select(algebra.polynomials, x -> #(set(support x)*ind) == 1))#0;
     y := (toList(set(support p)*ind))#0;
-    r = coefficientRing(algebra.coordring)[y];
+    r = algebra.field[y];
     p = sub(p, r);
-    vals := (roots p)/(x -> x^(coefficientRing(algebra.coordring)));
-    --for x in select(vals, x -> x != 0) do (
+    vals := (roots p)/(x -> x^(algebra.field));
+
+    -- Run over each of these roots
+    algs := {};
     for x in unique(vals) do (
         print ("Using value", x);
-        newalgebra := dihedralAlgebraSetup(evals, tbl, field => opts.field, primitive => opts.primitive, form => opts.form);
-        changeRingOfAlgebra(newalgebra, algebra.coordring);
+        -- Make the new algebra
+        newalgebra := new MutableHashTable from {};
+        newalgebra.evecs = copy algebra.evecs;
+        for key in keys algebra do (
+            if key != evecs then newalgebra#key = algebra#key;
+            );
         newalgebra.polynomials = append(algebra.polynomials, y - x);
         quotientNullPolynomials newalgebra;
+        findNullVectors newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
         algs = append(algs, newalgebra);
         print "Found new algebra";
@@ -564,6 +576,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     return hashTable{algebras => algs, values => vals};
     )
 
+-- Some debugging function?
 testPolynomial = algebra -> (
     n := #algebra.span;
     v := sub(standardAxialVector(0, n), algebra.coordring);
