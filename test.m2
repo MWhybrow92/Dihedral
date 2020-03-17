@@ -6,12 +6,12 @@ load "testFusion.m2"
 
 evals = {1, 0, 1/4};
 tbl = JordanTable (1/4);
-algebras = dihedralAlgebras (evals, tbl, form => false);
+algs = dihedralAlgebras (evals, tbl, form => false);
 
-test = apply(algebras#0, x -> testFusion x);
+test = apply(algs.algebras, x -> testFusion x);
 if test != {true, true, true} then error "Jordan 1/4";
 
-test = apply(algebras#0, x -> #x.span);
+test = apply(algs.algebras, x -> #x.span);
 if set test != set {2, 3, 0} then error "Jordan 1/4";
 
 algebra = universalDihedralAlgebra (evals, tbl, primitive => false);
