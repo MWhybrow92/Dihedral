@@ -65,7 +65,7 @@ fusion = {expand => true} >> opts -> algebra -> (
                             );
                         prod := colReduce axialProduct(u, v, algebra.products);
                         if prod =!= false then recordEvec(prod, rule, algebra.temp, algebra);
-                        if findNullPolys algebra then return;
+                        findNullPolys algebra;
                         );
                     );
                 );
@@ -176,8 +176,6 @@ findNullPolys = algebra -> (
     evals := select(algebra.evals, ev -> ev != algebra.eigenvalue);
     za := findBasis gens intersect(image v, image algebra.temp#(set evals));
     quotientNullVec(algebra, za);
-    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*set(gens r)) == 1) then return true
-    else return false;
     )
 
 findNullVectors = algebra -> (
@@ -514,12 +512,9 @@ mainLoop = algebra -> (
         findNullVectors algebra;
         print (n, howManyUnknowns algebra);
         if member(howManyUnknowns algebra, {0,n}) then break;
-        if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return; -- TODO Move this to a new function?
         );
     fusion algebra;
-    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return; -- TODO Do we need these two here? Might be more efficient without
     findNullVectors algebra;
-    if algebra.polys and any(algebra.polynomials, x -> #(set(support x)*ind) == 1) then return;
     )
 
 universalDihedralAlgebra = dihedralOpts >> opts -> (evals, tbl) -> (

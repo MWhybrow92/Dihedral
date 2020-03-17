@@ -14,7 +14,6 @@ dihedralAlgebraSetup = dihedralOpts >> opts -> (evals, tbl) -> (
     for key in keys opts do algebra#key = opts#key;
     algebra.coordring = opts.field;
     algebra.polynomials = {};
-    algebra.polys = false;
     ev := algebra.eigenvalue;
     algebra.span = {0,1} | apply(toList(1..n-1), x -> {0,x});
 
