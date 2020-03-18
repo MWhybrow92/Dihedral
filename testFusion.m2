@@ -49,3 +49,20 @@ testEvecs = algebra -> (
             );
         );
     )
+
+testFlip = {form => true} >> opts -> algebra -> (
+    n := #algebra.span;
+    for i to n - 1 do (
+        u := standardAxialVector(i, n);
+        uf := flipVector(u, algebra);
+        for j to n - 1 do (
+            v := standardAxialVector(j, n);
+            vf := flipVector(v, algebra);
+            -- Calculate products and compare (uv)^sigma and u^sigma v^sigma
+            prod := axialProduct(u, v, algebra.products);
+            prodf := axialProduct(uf, vf, algebra.products);
+            if prod - flipVector(prodf, algebra) !=0 then "flip error";
+            );
+        );
+    return true;
+    )
