@@ -7,6 +7,7 @@ load "setup.m2";
 -- Column reduces a matrices with entries in a ring
 
 colReduce =  M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the transpose
+    if M == 0 then return M;
     r := ring M;
     M = new MutableMatrix from transpose M; -- transpose the matrix
     (m,n) := (numrows M, numcols M);
@@ -250,6 +251,7 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
     d := numgens image algebra.nullspace;
     if opts.Flip then (
         for i to d - 1 do (
+            -- TODO Pass form option to flipVector
             v := flipVector(algebra.nullspace_{i}, algebra);
             if v =!= false then algebra.nullspace = algebra.nullspace | v;
             );
@@ -540,7 +542,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     -- If still none then return
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then (
         print "Warning: could not find dihedral algebras";
-        return hashTable{algebras => {algebra}, values => {}};
+        return hashTable{algebras => {algebra}, lambdas => {}};
         );
 
     -- Find the roots of the (first) null univariate polynomial
@@ -565,10 +567,12 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         quotientNullPolynomials newalgebra;
         findNullVectors newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
+        fusion newalgebra;
+        findNullVectors newalgebra;
         algs = append(algs, newalgebra);
         print "Found new algebra";
         );
-    return hashTable{algebras => algs, values => vals};
+    return hashTable{algebras => algs, lambdas => vals};
     )
 
 tauMaps = (algebra, plusEvals, minusEvals) -> (
