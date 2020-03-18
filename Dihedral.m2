@@ -149,9 +149,23 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
 -- Work out how to reduce the number of indeterminates of the poly ring when we
 -- quotient null polys
 
+-- If we quotient by a univariate poly of degree 1, we can lose one of the indeterminates
+-- of the coord ring
+reduceCoordRing = (algebra, I) -> (
+        r := flattenRing( algebra.coordring/I )#0;
+        ind := select(gens r, x -> not isConstant (x));
+        -- If there no indeterminates have been determined then do nothing
+        if #ind == numgens algebra.coordring then return;
+        -- Otherwise change to ring with reduced number of indeterminates
+        r = coefficientRing(algebra.coordring)[ind];
+        changeRingOfAlgebra(algebra, r);
+    )
+
 quotientNullPolynomials = algebra -> (
     if #algebra.polynomials == 0 then return;
+    -- Removed repeated factors in polynomials
     algebra.polynomials  = apply( algebra.polynomials, p -> value apply(factor p, x -> x#0 ));
+    -- Quotient polys from products, evecs and nullspace
     I := ideal algebra.polynomials;
     for i to #algebra.products - 1 do (
         for j to #algebra.products - 1 do (
@@ -169,6 +183,9 @@ quotientNullPolynomials = algebra -> (
             );
         );
     if algebra#?nullspace then algebra.nullspace = algebra.nullspace % I;
+    -- TODO Implement and test this
+    -- Possibly reduce the number of determinants in coord ring
+    -- reduceCoordRing( algebra, I );
     )
 
 findNullPolys = algebra -> (
@@ -450,12 +467,6 @@ imageFlip = (i, f, algebra) -> (
     return axialProduct(im0, im1, algebra.products);
     )
 
-flipPoly = (poly, k) -> (
-    for i to k - 1 do (
-
-        )
-    )
-
 flipVector = {form => true} >> opts -> (vec, algebra) -> (
     f := findFlip algebra;
     r := ring vec;
@@ -525,7 +536,6 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     if #ind == 0 then return universalDihedralAlgebra(evals, tbl, opts);
 
     -- Might need to go looking for more polynomials
-    -- TODO This takes too long, replace with findNullPolys?
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then findNullPolys algebra;
     -- If still none then return
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then (
