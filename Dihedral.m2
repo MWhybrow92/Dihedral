@@ -538,7 +538,10 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     if #ind == 0 then return universalDihedralAlgebra(evals, tbl, opts);
 
     -- Might need to go looking for more polynomials
-    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then findNullPolys algebra;
+    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then (
+        fusion algebra;
+        findNullPolys algebra;
+        );
     -- If still none then return
     if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then (
         print "Warning: could not find dihedral algebras";
