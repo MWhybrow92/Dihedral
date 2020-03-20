@@ -19,6 +19,8 @@ colReduce =  M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the
         	c := M_(a,j);
         	rowSwap(M,a,i);
             if c == 1 or isUnit c then break; -- isUnit is expensive, but often c == 1 so check this first
+            --x := leadCoefficient c; -- Scale the matrix element
+            --if isUnit x then rowMult(M, i, x^(-1));
             i = i - 1; -- if c is not a unit then look at the next row
             a = position (0..i, l-> M_(l,j) != 0, Reverse => true);
             );
@@ -32,8 +34,8 @@ colReduce =  M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the
     return M_{i+1..m-1};
     )
 
---findBasis = mat -> mingens image mat;
-findBasis = mat -> colReduce mingens image mat;
+-- This is quick and it works not clear why we need to do mingens twice
+findBasis = mat -> mingens image sort mingens image mat;
 
 fusionRule = (set0, set1, tbl) -> (
     rule := {};
@@ -193,7 +195,7 @@ findNullPolys = algebra -> (
     -- A bit patchy to catch null polynomials
     r := algebra.coordring;
     v := sub(standardAxialVector(0, #algebra.span), r);
-    evals := select(algebra.evals, ev -> ev != algebra.eigenvalue);
+    evals := select(algebra.evals, ev -> ev != algebra.opts.eigenvalue);
     za := findBasis gens intersect(image v, image algebra.evecs#(set evals));
     quotientNullVec(algebra, za);
     )
@@ -251,7 +253,6 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
     d := numgens image algebra.nullspace;
     if opts.Flip then (
         for i to d - 1 do (
-            -- TODO Pass form option to flipVector
             v := flipVector(algebra.nullspace_{i}, algebra);
             if v =!= false then algebra.nullspace = algebra.nullspace | v;
             );
@@ -272,7 +273,7 @@ quotientNullVec = (algebra, vec) -> (
     nonzero := positions(vec, x -> x#0 != 0);
     if #nonzero == 0 then return;
     k := last nonzero;
-    if algebra.primitive and #(set(support vec#k#0)*set(gens r)) > 0 then ( -- all poly mat
+    if algebra.opts.primitive and #(set(support vec#k#0)*set(gens r)) > 0 then ( -- all poly mat
         if k < 3 and #nonzero < 2 then (
             polys := unique flatten vec;
             polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
@@ -298,7 +299,7 @@ quotientNullVec = (algebra, vec) -> (
         return;
         );
     vec = sub(matrix vec, algebra.coordring);
-    if algebra.primitive then entry := sub(vec_(k,0), coefficientRing algebra.coordring)
+    if algebra.opts.primitive then entry := sub(vec_(k,0), coefficientRing algebra.coordring)
     else entry = vec_(k,0);
     n := #algebra.span;
     vec = vec*entry^(-1);
@@ -357,7 +358,7 @@ quotientNullVec = (algebra, vec) -> (
     )
 
 quotientAllPolyNullVecs = algebra -> (
-    if not algebra.primitive then return;
+    if not algebra.opts.primitive then return;
     algebra.allpolynullvecs = findBasis algebra.allpolynullvecs;
     n := numgens image algebra.allpolynullvecs;
     for i in reverse toList(0..n - 1) do (
@@ -469,15 +470,16 @@ imageFlip = (i, f, algebra) -> (
     return axialProduct(im0, im1, algebra.products);
     )
 
-flipVector = {form => true} >> opts -> (vec, algebra) -> (
+flipVector = (vec, algebra) -> (
     f := findFlip algebra;
     r := ring vec;
     v := flatten entries vec;
     -- If we are not assuming a form then the flip switches the indeterminates of the coord ring
-    if not opts.form then (
-        k := numgens algebra.coordring - numgens algebra.field;
-        for i to k/2 - 1 do (
-            apply(v, p -> sub(p, {r_i => r_(i + k/2), r_(i + k/2) => i} ));
+    if not algebra.opts.form then (
+        k := numgens algebra.coordring - numgens algebra.opts.field;
+        k = (k/2)^ZZ;
+        for i to (k - 1) do (
+            v = apply(v, p -> sub(p, {r_i => r_(i + k), r_(i + k) => i} ));
             );
         );
     -- Now flip the coordinates
@@ -548,9 +550,9 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     -- Find the roots of the (first) null univariate polynomial
     p := (select(algebra.polynomials, x -> #(set(support x)*ind) == 1))#0;
     y := (toList(set(support p)*ind))#0;
-    r = algebra.field[y];
+    r = algebra.opts.field[y];
     p = sub(p, r);
-    vals := (roots p)/(x -> x^(algebra.field));
+    vals := (roots p)/(x -> x^(algebra.opts.field));
 
     -- Run over each of these roots
     algs := {};

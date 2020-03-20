@@ -11,10 +11,10 @@ dihedralAlgebraSetup = dihedralOpts >> opts -> (evals, tbl) -> (
     algebra.evals = evals;
     algebra.tbl = tbl;
     algebra.usefulpairs = usefulPairs(evals, tbl);
-    for key in keys opts do algebra#key = opts#key;
+    algebra.opts = opts;
     algebra.coordring = opts.field;
     algebra.polynomials = {};
-    ev := algebra.eigenvalue;
+    ev := opts.eigenvalue;
     algebra.span = {0,1} | apply(toList(1..n-1), x -> {0,x});
 
     -- Add products as list of lists
@@ -31,12 +31,12 @@ dihedralAlgebraSetup = dihedralOpts >> opts -> (evals, tbl) -> (
     algebra.evecs = new MutableHashTable;
     findFirstEigenvectors algebra;
 
-    if algebra.primitive then (
+    if algebra.opts.primitive then (
         -- Scale the eigenvector so that x0 = (a0, a1)
         for x in toList(set(algebra.evals) - {ev}) do (
             algebra.evecs#(set {ev}) = (1/(ev-x))*algebra.evecs#(set {ev});
         );
-        quotientOneEigenvector ( algebra, algebra.evecs#(set {ev}), form => opts.form );
+        quotientOneEigenvector ( algebra, algebra.evecs#(set {ev}) );
     );
 
     n = #algebra.span;
@@ -61,9 +61,9 @@ properSubsets = s -> select( subsets s, x -> #x > 0 and x != s );
 -- Using HRS15 Lemma 5.3
 findFirstEigenvectors = algebra -> (
     n := #algebra.evals;
-    a0 := sub(standardAxialVector(0, n + 1), algebra.field);
+    a0 := sub(standardAxialVector(0, n + 1), algebra.coordring);
     for ev0 in algebra.evals do (
-        prod := sub(standardAxialVector(1, n + 1), algebra.field);
+        prod := sub(standardAxialVector(1, n + 1), algebra.coordring);
         for ev1 in toList(set( algebra.evals ) - {ev0}) do (
                 prod = axialProduct(a0, prod, algebra.products) - ev1*prod;
             );
@@ -72,15 +72,15 @@ findFirstEigenvectors = algebra -> (
     )
 
 -- Add indeterminates to ring in order to quotient a 1-eigenvector
-extendedRing = { form => true } >> opts -> algebra -> (
-    n := numgens algebra.coordring - numgens algebra.field;
-    if opts.form then return algebra.field[ apply (0..n, i -> "x"|i)]
-    else return algebra.field[ apply (0..n, i -> "x"|i) | apply (0..n, i -> "y"|i) ];
+extendedRing = algebra -> (
+    n := numgens algebra.coordring - numgens algebra.opts.field;
+    if algebra.opts.form then return algebra.opts.field[ apply (0..n, i -> "x"|i)]
+    else return algebra.opts.field[ apply (0..n, i -> "x"|i) | apply (0..n, i -> "y"|i) ];
     )
 
 -- Special procedure to quotient a 1-eigenvector in the primitive case
-quotientOneEigenvector = { form => true } >> opts -> (algebra, v) -> (
-    changeRingOfAlgebra(algebra, extendedRing (algebra, form => opts.form) );
+quotientOneEigenvector = (algebra, v) -> (
+    changeRingOfAlgebra(algebra, extendedRing algebra );
     n := #algebra.evals;
     v = v - x0*sub(standardAxialVector(0,n + 1), ring(x0));
     quotientNullspace (algebra, v);
