@@ -3,7 +3,7 @@ testFusion = algebra -> (
     mat := zeroAxialVector (#algebra.span);
     for ev in keys algebra.evecs do algebra.evecs#ev = mingens image algebra.evecs#ev;
     a := standardAxialVector(0, #algebra.span);
-    I := ideal algebra.polynomials;
+    I := sub(ideal algebra.polynomials, algebra.coordring);
     for ev0 in algebra.evals do (
         for ev1 in algebra.evals do (
             for i to numgens source algebra.evecs#(set {ev0}) - 1 do (
