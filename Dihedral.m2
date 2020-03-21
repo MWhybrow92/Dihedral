@@ -1,3 +1,8 @@
+--TODO 21/03
+
+
+
+
 dihedralOpts = { field => QQ, primitive => true, form => true, eigenvalue => 1 };
 
 load "examples.m2";
@@ -259,10 +264,7 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
         algebra.nullspace = findBasis algebra.nullspace;
         d = numgens image algebra.nullspace;
         );
-    for j in reverse toList(0 .. d - 1) do (
-        if j < numgens image algebra.nullspace then (
-            quotientNullVec(algebra, algebra.nullspace_{j});
-            );
+    for j in reverse toList(0..d-1) do quotientNullVec(algebra, algebra.nullspace_{j});
         );
     )
 
@@ -285,9 +287,7 @@ quotientNullVec = (algebra, vec) -> (
             )
         else return false;
         );
-    if not isUnit vec#k#0 then (
-        return;
-        );
+    if not isUnit vec#k#0 then return false;
     if k == 0 or k == 1 then ( -- algebra is zero
         algebra.span = {};
         algebra.products = new MutableList from {};
@@ -304,7 +304,6 @@ quotientNullVec = (algebra, vec) -> (
     n := #algebra.span;
     vec = vec*entry^(-1);
     prod := standardAxialVector(k,n) - vec;
-    z := zeroAxialVector n;
     for i in k+1 .. n-1 do (
         if i < #algebra.span then (
             x := algebra.span#i;
@@ -313,15 +312,13 @@ quotientNullVec = (algebra, vec) -> (
                 else u = standardAxialVector(x#0,n);
                 if x#1 == k then v := prod
                 else v = standardAxialVector(x#1,n);
-                unknowns := findUnknowns(u, v, algebra.products);
-                if #unknowns > 0 then return false;
                 newProd := axialProduct(u, v, algebra.products);
-                if newProd !=0 and newProd_(i, 0) == 1 then return false; -- cannot find quotient
-                z = z | (sub(standardAxialVector(i,n), algebra.coordring) - newProd);
+                if newProd === false or newProd_(i, 0) == 1 then return false;
+                newVec := sub(standardAxialVector(i,n), r) - newProd;
+                if quotientNullVec(algebra, newVec) === false then return false;
                 );
             );
         );
-    quotientNullspace(algebra, z, Flip => false);
     n = #algebra.span;
     if k > n - 1 then return;
     d = n - numgens target vec;
