@@ -9,7 +9,7 @@ tbl = JordanTable (1/4);
 algs = dihedralAlgebras (evals, tbl, form => false);
 
 test = apply(algs.algebras, x -> #x.span);
-if set test != set {2, 3, 0} then error "Jordan 1/4";
+if set test =!= set {2, 3, 0} then error "Jordan 1/4";
 
 test = apply(algs.algebras, x -> testFusion x);
 if test != {true, true, true} then error "Jordan 1/4";
