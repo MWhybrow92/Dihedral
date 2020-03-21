@@ -479,7 +479,7 @@ flipVector = (vec, algebra) -> (
         k := numgens algebra.coordring - numgens algebra.opts.field;
         k = (k/2)^ZZ;
         for i to (k - 1) do (
-            v = apply(v, p -> sub(p, {r_i => r_(i + k), r_(i + k) => i} ));
+            v = apply(v, p -> sub(p, {r_i => r_(i + k), r_(i + k) => r_i} ));
             );
         );
     -- Now flip the coordinates
