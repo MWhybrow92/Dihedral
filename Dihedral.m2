@@ -57,7 +57,6 @@ fusionRule = (set0, set1, tbl) -> (
 fusion = {expand => true} >> opts -> algebra -> (
     if opts.expand == true then print "Performing fusion with expansion"
     else print "Performing fusion without expansion";
-    r := algebra.coordring;
     algebra.temp = copy algebra.evecs;
     for p in algebra.usefulpairs do (
         rule := fusionRule(p#0, p#1, algebra.tbl);
@@ -83,12 +82,8 @@ fusion = {expand => true} >> opts -> algebra -> (
 
 recordEvec = (v, rule, evecs, algebra) -> (
     if v == 0 then return;
-    if rule === set {} then quotientNullspace (algebra, v)
-    else (
-        for s in keys evecs do (
-            if isSubset(rule, s) then evecs#s = findBasis (evecs#s|v);
-            );
-        );
+    if rule === set {} then return quotientNullspace (algebra, v);
+    for s in keys evecs do if isSubset(rule, s) then evecs#s = findBasis (evecs#s|v);
     )
 
 expandVector = (vec, k) -> (
@@ -198,8 +193,7 @@ quotientNullPolynomials = algebra -> (
 
 findNullPolys = algebra -> (
     -- A bit patchy to catch null polynomials
-    r := algebra.coordring;
-    v := sub(standardAxialVector(0, #algebra.span), r);
+    v := sub(standardAxialVector(0, #algebra.span), algebra.coordring);
     evals := select(algebra.evals, ev -> ev != algebra.opts.eigenvalue);
     za := findBasis gens intersect(image v, image algebra.evecs#(set evals));
     quotientNullVec(algebra, za);
@@ -476,8 +470,6 @@ howManyUnknowns = algebra -> (
     )
 
 mainLoop = algebra -> (
-    r := algebra.coordring;
-    ind := set(gens r);
     while true do (
         n := howManyUnknowns algebra;
         findNewEigenvectors algebra;
@@ -504,8 +496,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     algebra := universalDihedralAlgebra(evals, tbl, opts);
 
     -- Find the indeterminates of the algebra, if none then return universal algebra
-    r := algebra.coordring;
-    ind := set(gens r);
+    ind := set(gens algebra.coordring);
     if #ind == 0 then return universalDihedralAlgebra(evals, tbl, opts);
 
     -- Might need to go looking for more polynomials
@@ -523,8 +514,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     -- Find the roots of the (first) null univariate polynomial
     p := (select(algebra.polynomials, x -> #(set(support x)*ind) == 1))#0;
     y := (toList(set(support p)*ind))#0;
-    r = algebra.opts.field[y];
-    p = sub(p, r);
+    p = sub(p, algebra.opts.field[y]);
     vals := (roots p)/(x -> x^(algebra.opts.field));
 
     -- Run over each of these roots
