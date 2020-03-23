@@ -32,10 +32,6 @@ evals = {1, 2, 3};
 tbl = GenericJordan (2, 3);
 algebra = universalDihedralAlgebra (evals, tbl);
 
--- Unfortunately we have to do a little extra work
-fusion algebra;
-findNullVectors algebra;
-
 if #algebra.span != 1 then error "1-dimensional";
 
 -- Test Monster
