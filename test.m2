@@ -22,7 +22,8 @@ testFusion algebra;
 evals = {1, 0, 1/2};
 tbl = JordanTable (1/2);
 
-algebra = universalDihedralAlgebra (evals, tbl, form => false);
+-- If form = false, result is correct but does not find x0 = y0
+algebra = universalDihedralAlgebra (evals, tbl, form => true);
 testFusion algebra;
 
 -- This algebra should be one dimensional
@@ -38,7 +39,6 @@ findNullVectors algebra;
 if #algebra.span != 1 then error "1-dimensional";
 
 -- Test Monster
-
 evals = {1, 0, 1/4, 1/32};
 tbl = MonsterTable( 1/4, 1/32 );
 algs = dihedralAlgebras (evals, tbl);

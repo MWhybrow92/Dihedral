@@ -261,30 +261,34 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
     for j in reverse toList(0..d-1) do quotientNullVec(algebra, algebra.nullspace_{j});
     )
 
+polyNullVec = (algebra, vec) -> (
+    n := numgens target vec;
+    -- The poly is vec_(0,0) + (v_(1,0) + v_(2,0))*x0
+    -- This needs to be a lemma that \phi_a0 (a_1) = \phi_a0 (a0a1) = x0
+    -- As projection of a0a1 - a1 is zero
+    poly := vec_(0,0);
+    for i in 1..n-1 do poly = poly + vec_(i,0)*x0;
+    -- Then quotient this polynomial
+    polys := flatten entries groebnerBasis ideal (algebra.polynomials | {poly});
+    if polys != algebra.polynomials then (
+        algebra.polynomials = polys;
+        quotientNullPolynomials algebra;
+        );
+    );
+
 quotientNullVec = (algebra, vec) -> (
     if vec == 0 then return;
     r := algebra.coordring;
-    vec = entries vec;
-    nonzero := positions(vec, x -> x#0 != 0);
-    k := last nonzero;
-    if algebra.opts.primitive and #(set(support vec#k#0)*set(gens r)) > 0 then ( -- all poly mat
-        if k < 3 and #nonzero < 2 then (
-            polys := unique flatten vec;
-            polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
-            if polys != algebra.polynomials then (
-                algebra.polynomials = polys;
-                quotientNullPolynomials algebra;
-                );
-            return false;
-            )
-        else return false;
+    k := last positions(entries vec, x -> x#0 != 0);
+    if algebra.opts.primitive and #(set(support vec_(k,0))*set(gens r)) > 0 then ( -- all poly mat
+        if k < 3 then polyNullVec (algebra, vec);
+        return false;
         );
-    if not isUnit vec#k#0 then return false;
-    vec = sub(matrix vec, algebra.coordring);
+    if not isUnit vec_(k,0) then return false;
     if algebra.opts.primitive then entry := sub(vec_(k,0), coefficientRing algebra.coordring)
     else entry = vec_(k,0);
-    n := #algebra.span;
     vec = vec*entry^(-1);
+    n := #algebra.span;
     prod := standardAxialVector(k,n) - vec;
     for i in k+1 .. n-1 do (
         if i < #algebra.span then (
