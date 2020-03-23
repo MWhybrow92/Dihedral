@@ -269,7 +269,7 @@ polyNullVec = (algebra, vec) -> (
     poly := vec_(0,0);
     for i in 1..n-1 do poly = poly + vec_(i,0)*x0;
     -- Then quotient this polynomial
-    polys := flatten entries groebnerBasis ideal (algebra.polynomials | {poly});
+    polys := flatten entries groebnerBasis ideal append(algebra.polynomials, poly);
     if polys != algebra.polynomials then (
         algebra.polynomials = polys;
         quotientNullPolynomials algebra;
@@ -426,27 +426,28 @@ imageFlip = (i, f, algebra) -> (
     return axialProduct(im0, im1, algebra.products);
     )
 
+-- Applies polynomial flip to x which can be a polynomial or a vector
+flipPoly = (x, algebra) -> (
+    r := algebra.coordring;
+    k := numgens r - numgens algebra.opts.field;
+    k = (k/2)^ZZ;
+    for i to (k - 1) do x = sub(x, {r_i => r_(i + k), r_(i + k) => r_i} );
+    )
+
+-- Applies flip to a vector, changing entries via flipPoly then changing coordinates
 flipVector = (vec, algebra) -> (
-    f := findFlip algebra;
-    r := ring vec;
-    v := flatten entries vec;
     -- If we are not assuming a form then the flip switches the indeterminates of the coord ring
-    if not algebra.opts.form then (
-        k := numgens algebra.coordring - numgens algebra.opts.field;
-        k = (k/2)^ZZ;
-        for i to (k - 1) do (
-            v = apply(v, p -> sub(p, {r_i => r_(i + k), r_(i + k) => r_i} ));
-            );
-        );
+    if not algebra.opts.form then flipPoly (vec, algebra);
     -- Now flip the coordinates
-    res := sub(zeroAxialVector(#v), r);
-    for i in positions(v, x -> x !=0 ) do (
+    f := findFlip algebra;
+    res := sub(zeroAxialVector(#algebra.span), algebra.coordring);
+    for i in positions(entries vec, x -> x#0 !=0 ) do (
         im := imageFlip(i, f, algebra);
-        if im === false then return false;
+        if im === false then return false; -- TODO How often does this happen?
         if #algebra.span != numgens target res then (
             res = res || matrix( toList ((#algebra.span - numgens target res):{0}) );
             );
-        res = res + im*v#i;
+        res = res + im*vec_(i,0);
         );
     res
     )
@@ -494,26 +495,24 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
 
     -- Might need to go looking for more polynomials
     findNullPolys algebra;
-    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then (
+    if #algebra.polynomials == 0 then (
         fusion algebra;
         findNullPolys algebra;
         );
     -- If still none then return
-    if all(algebra.polynomials, x -> #(set(support x)*ind) != 1) then (
+    if #algebra.polynomials == 0 then (
         print "Warning: could not find dihedral algebras";
         return hashTable{algebras => {algebra}, lambdas => {}};
         );
 
     -- Find the roots of the (first) null univariate polynomial
-    p := (select(algebra.polynomials, x -> #(set(support x)*ind) == 1))#0;
-    y := (toList(set(support p)*ind))#0;
-    p = sub(p, algebra.opts.field[y]);
-    vals := (roots p)/(x -> x^(algebra.opts.field));
+    factors := flatten apply(algebra.polynomials, p -> toList factor p);
+    factors = apply(factors, p -> p#0);
 
     -- Run over each of these roots
     algs := {};
-    for x in unique(vals) do (
-        print ("Using value", x);
+    for p in unique(factors) do (
+        print ("Using factor", p);
         -- Make the new algebra
         newalgebra := new MutableHashTable from {};
         for key in keys algebra do newalgebra#key = algebra#key;
@@ -521,7 +520,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         newalgebra.products = new MutableList from {};
         for i to #algebra.span - 1 do newalgebra.products#i = copy algebra.products#i;
         -- Use the root x
-        newalgebra.polynomials = append(algebra.polynomials, y - x);
+        newalgebra.polynomials = {p};
         quotientNullPolynomials newalgebra;
         findNullVectors newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
@@ -530,7 +529,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         algs = append(algs, newalgebra);
         print "Found new algebra";
         );
-    return hashTable{algebras => algs, lambdas => vals};
+    return hashTable{algebras => algs, lambdas => factors};
     )
 
 tauMaps = (algebra, plusEvals, minusEvals) -> (
