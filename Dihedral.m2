@@ -432,12 +432,13 @@ flipPoly = (x, algebra) -> (
     k := numgens r - numgens algebra.opts.field;
     k = (k/2)^ZZ;
     for i to (k - 1) do x = sub(x, {r_i => r_(i + k), r_(i + k) => r_i} );
+    return x;
     )
 
 -- Applies flip to a vector, changing entries via flipPoly then changing coordinates
 flipVector = (vec, algebra) -> (
     -- If we are not assuming a form then the flip switches the indeterminates of the coord ring
-    if not algebra.opts.form then flipPoly (vec, algebra);
+    if not algebra.opts.form then vec = flipPoly (vec, algebra);
     -- Now flip the coordinates
     f := findFlip algebra;
     res := sub(zeroAxialVector(#algebra.span), algebra.coordring);
