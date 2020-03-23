@@ -140,7 +140,6 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                         u = prod - ev*u
                         );
                     if prod =!= false then recordEvec(u, s - t, algebra.evecs, algebra);
-                    if #algebra.span == 0 then return;
                     );
                 );
             );
@@ -246,6 +245,7 @@ reduceSpanningVec = (vec, k) -> (
     )
 
 quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
+    if #algebra.polynomials > 0 then mat = mat % (ideal algebra.polynomials);
     if mat == 0 then return;
     algebra.nullspace = mat;
     n := #algebra.span;
@@ -266,7 +266,6 @@ quotientNullVec = (algebra, vec) -> (
     r := algebra.coordring;
     vec = entries vec;
     nonzero := positions(vec, x -> x#0 != 0);
-    if #nonzero == 0 then return;
     k := last nonzero;
     if algebra.opts.primitive and #(set(support vec#k#0)*set(gens r)) > 0 then ( -- all poly mat
         if k < 3 and #nonzero < 2 then (
@@ -281,16 +280,6 @@ quotientNullVec = (algebra, vec) -> (
         else return false;
         );
     if not isUnit vec#k#0 then return false;
-    if k == 0 or k == 1 then ( -- algebra is zero
-        algebra.span = {};
-        algebra.products = new MutableList from {};
-        algebra.nullspace = matrix 0;
-        for ev in keys algebra.evecs do algebra.evecs#ev = matrix 0;
-        if algebra#?temp then (
-            for ev in keys algebra.temp do algebra.temp#ev = matrix 0;
-            );
-        return;
-        );
     vec = sub(matrix vec, algebra.coordring);
     if algebra.opts.primitive then entry := sub(vec_(k,0), coefficientRing algebra.coordring)
     else entry = vec_(k,0);
