@@ -265,7 +265,6 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
         d = numgens image algebra.nullspace;
         );
     for j in reverse toList(0..d-1) do quotientNullVec(algebra, algebra.nullspace_{j});
-        );
     )
 
 quotientNullVec = (algebra, vec) -> (
@@ -367,33 +366,6 @@ quotientAllPolyNullVecs = algebra -> (
     )
 
 reduce = (u, v, k) -> u - v*u^{k}
-
-reduceMat = (u, mat) -> (
-    n := numgens image mat - 1;
-    for i to n do (
-        v := mat_{i};
-        vec := entries v;
-        k := last positions(vec, x -> x#0 != 0);
-        entry := vec#k#0;
-        v = v*entry^(-1);
-        u = findBasis reduce(u, v, k);
-        );
-    return u;
-    )
-
-reducedEvecs = algebra -> (
-    evecs := new MutableHashTable;
-    evals := keys algebra.evecs;
-    for s in select(evals, x -> #x > 1) do (
-        for ev in select(evals, x -> isSubset(x, s) and x =!= set) do (
-            evecs#s = reduceMat(algebra.evecs#s, algebra.evecs#ev);
-            );
-        );
-    for s in select(evals, x -> #x == 1) do (
-            evecs#s = algebra.evecs#s;
-        );
-    evecs
-    )
 
 findUnknowns = (u, v, products) -> (
     unknowns := {};
