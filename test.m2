@@ -43,6 +43,6 @@ tbl = MonsterTable( 1/4, 1/32 );
 algs = dihedralAlgebras (evals, tbl);
 
 test = apply(algs.algebras, x -> #x.span);
-if set test != set {2, 8, 8, 6, 5, 4, 3, 1} then error "Monster";
+if set test =!= set {2, 8, 8, 6, 5, 4, 3, 1} then error "Monster";
 
 apply(algs.algebras, x -> testFusion x);
