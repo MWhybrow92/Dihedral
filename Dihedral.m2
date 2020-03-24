@@ -235,19 +235,17 @@ reduceSpanningVec = (vec, k) -> (
     vec
     )
 
-quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
+quotientNullspace = (algebra, mat)  -> (
     if #algebra.polynomials > 0 then mat = mat % (ideal algebra.polynomials);
-    if mat == 0 then return;
     algebra.nullspace = mat;
-    n := #algebra.span;
     d := numgens image algebra.nullspace;
-    if opts.Flip then (
-        for i to d - 1 do (
-            v := flipVector(algebra.nullspace_{i}, algebra);
-            if v =!= false then algebra.nullspace = algebra.nullspace | v;
-            );
-        d = numgens image algebra.nullspace;
+    -- Apply flip to the nullspace vectors
+    for i to d - 1 do (
+        v := flipVector(algebra.nullspace_{i}, algebra);
+        if v =!= false then algebra.nullspace = algebra.nullspace | v;
         );
+    d = numgens image algebra.nullspace;
+    -- Quotient one vec at a time
     for j in reverse toList(0..d-1) do quotientNullVec(algebra, algebra.nullspace_{j});
     )
 
