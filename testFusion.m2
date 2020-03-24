@@ -61,7 +61,7 @@ testFlip = {form => true} >> opts -> algebra -> (
             -- Calculate products and compare (uv)^sigma and u^sigma v^sigma
             prod := axialProduct(u, v, algebra.products);
             prodf := axialProduct(uf, vf, algebra.products);
-            if prod - flipVector(prodf, algebra) !=0 then "flip error";
+            if prod - flipVector(prodf, algebra) !=0 then error "flip error";
             );
         );
     return true;
