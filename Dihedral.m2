@@ -266,6 +266,7 @@ polyNullVec = (algebra, vec) -> (
         algebra.polynomials = polys;
         quotientNullPolynomials algebra;
         );
+    return vec % (ideal algebra.polynomials);
     );
 
 quotientNullVec = (algebra, vec) -> (
@@ -273,8 +274,7 @@ quotientNullVec = (algebra, vec) -> (
     r := algebra.coordring;
     k := last positions(entries vec, x -> x#0 != 0);
     if algebra.opts.primitive and #(set(support vec_(k,0))*set(gens r)) > 0 then ( -- all poly mat
-        if k < 3 then polyNullVec (algebra, vec);
-        return false;
+        if k < 3 then vec = polyNullVec (algebra, vec);
         );
     if not isUnit vec_(k,0) then return false;
     if algebra.opts.primitive then entry := sub(vec_(k,0), coefficientRing algebra.coordring)
