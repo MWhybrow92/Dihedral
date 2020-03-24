@@ -342,18 +342,6 @@ quotientNullVec = (algebra, vec) -> (
     if any(toList (2..n-1), i -> member(i, algebra.span#i)) then error "here";
     )
 
-quotientAllPolyNullVecs = algebra -> (
-    if not algebra.opts.primitive then return;
-    algebra.allpolynullvecs = findBasis algebra.allpolynullvecs;
-    n := numgens image algebra.allpolynullvecs;
-    for i in reverse toList(0..n - 1) do (
-        vec := flatten entries algebra.allpolynullvecs_{i};
-        if any(vec, x -> x !=0 and #support x == 0 ) then (
-            quotientNullVec (algebra, algebra.allpolynullvecs_{i});
-            );
-        );
-    )
-
 reduce = (u, v, k) -> u - v*u^{k}
 
 findUnknowns = (u, v, products) -> (
