@@ -269,7 +269,9 @@ polyNullVec = (algebra, vec) -> (
     poly := vec_(0,0);
     for i in 1..n-1 do poly = poly + vec_(i,0)*x0;
     -- Then quotient this polynomial
-    polys := flatten entries groebnerBasis ideal append(algebra.polynomials, poly);
+    if not algebra.opts.form then polys := {poly, flipPoly(poly, algebra)}
+    else polys = {poly};
+    polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
     if polys != algebra.polynomials then (
         algebra.polynomials = polys;
         quotientNullPolynomials algebra;
@@ -506,9 +508,8 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         return hashTable{algebras => {algebra}, lambdas => {}};
         );
 
-    -- Find the roots of the (first) null univariate polynomial
-    factors := flatten apply(algebra.polynomials, p -> toList factor p);
-    factors = apply(factors, p -> p#0);
+    -- Find the roots of the first null univariate polynomial
+    factors := apply(toList factor algebra.polynomials#0, x -> x#0);
 
     -- Run over each of these roots
     algs := {};
@@ -520,8 +521,8 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         newalgebra.evecs = copy algebra.evecs;
         newalgebra.products = new MutableList from {};
         for i to #algebra.span - 1 do newalgebra.products#i = copy algebra.products#i;
-        -- Use the root x
-        newalgebra.polynomials = {p};
+        -- Use the factor p
+        newalgebra.polynomials = append(apply(algebra.polynomials, x -> x%p), p);
         quotientNullPolynomials newalgebra;
         findNullVectors newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
