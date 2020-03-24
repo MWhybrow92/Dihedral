@@ -22,9 +22,12 @@ testFusion algebra;
 evals = {1, 0, 1/2};
 tbl = JordanTable (1/2);
 
--- If form = false, result is correct but does not find x0 = y0
 algebra = universalDihedralAlgebra (evals, tbl, form => true);
 testFusion algebra;
+
+-- Gives two algebras, only minor repeat
+algs = dihedralAlgebras (evals, tbl, form => false);
+apply(algs.algebras, x -> testFusion x);
 
 -- This algebra should be one dimensional
 
