@@ -488,6 +488,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         );
 
     -- Find the roots of the first null univariate polynomial
+    algebra.polynomials = reverse algebra.polynomials;
     factors := apply(toList factor algebra.polynomials#0, x -> x#0);
 
     -- Run over each of these roots
