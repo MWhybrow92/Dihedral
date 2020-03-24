@@ -144,7 +144,6 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
                 );
             );
         );
-    for s in keys algebra.evecs do algebra.evecs#s = findBasis algebra.evecs#s;
     )
 
 --TODO A big one
