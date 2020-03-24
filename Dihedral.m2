@@ -1,8 +1,3 @@
---TODO 21/03
-
-
-
-
 dihedralOpts = { field => QQ, primitive => true, form => true, eigenvalue => 1 };
 
 load "examples.m2";
@@ -39,8 +34,7 @@ colReduce =  M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the
     return M_{i+1..m-1};
     )
 
--- This is quick and it works not clear why we need to do mingens twice
-findBasis = mat -> mingens image sort mingens image mat;
+findBasis = mat -> colReduce mingens image mat;
 
 fusionRule = (set0, set1, tbl) -> (
     rule := {};
@@ -329,7 +323,6 @@ quotientNullVec = (algebra, vec) -> (
     if algebra#?temp then (
         for ev in keys algebra.temp do (
             algebra.temp#ev = (reduce(algebra.temp#ev, vec, k))^reduction;
-            algebra.temp#ev = findBasis algebra.temp#ev;
             );
         );
     if algebra#?nullspace then (
@@ -432,7 +425,7 @@ flipVector = (vec, algebra) -> (
     res := sub(zeroAxialVector(#algebra.span), algebra.coordring);
     for i in positions(entries vec, x -> x#0 !=0 ) do (
         im := imageFlip(i, f, algebra);
-        if im === false then return false; -- TODO How often does this happen?
+        if im === false then return false;
         if #algebra.span != numgens target res then (
             res = res || matrix( toList ((#algebra.span - numgens target res):{0}) );
             );
