@@ -19,8 +19,6 @@ colReduce =  M -> ( -- Note - rowSwap is a lot faster than columnSwap, hence the
         	c := M_(a,j);
         	rowSwap(M,a,i);
             if c == 1 or isUnit c then break; -- isUnit is expensive, but often c == 1 so check this first
-            --x := leadCoefficient c; -- Scale the matrix element
-            --if isUnit x then rowMult(M, i, x^(-1));
             i = i - 1; -- if c is not a unit then look at the next row
             a = position (0..i, l-> M_(l,j) != 0, Reverse => true);
             );
