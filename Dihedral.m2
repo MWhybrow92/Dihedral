@@ -254,7 +254,6 @@ quotientNullspace = { Flip => true } >> opts -> (algebra, mat)  -> (
             v := flipVector(algebra.nullspace_{i}, algebra);
             if v =!= false then algebra.nullspace = algebra.nullspace | v;
             );
-        algebra.nullspace = findBasis algebra.nullspace;
         d = numgens image algebra.nullspace;
         );
     for j in reverse toList(0..d-1) do quotientNullVec(algebra, algebra.nullspace_{j});
