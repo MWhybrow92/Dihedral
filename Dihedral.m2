@@ -368,6 +368,7 @@ axialProduct = (u, v, products) -> (
 
 findFlip = algebra -> (
     n := #algebra.span;
+    if n == 1 then return {0};
     f := {1, 0, 2};
     if n < 4 then return f;
     for i in (3..n-1) do (
