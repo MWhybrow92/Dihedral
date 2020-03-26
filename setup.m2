@@ -79,8 +79,22 @@ extendedRing = algebra -> (
     )
 
 -- Special procedure to quotient a 1-eigenvector in the primitive case
-quotientOneEigenvector = (algebra, v) -> (
-    changeRingOfAlgebra(algebra, extendedRing algebra );
+quotientOneEigenvectors = algebra -> (
+    n := #algebra.span;
+    ev := algebra.opts.eigenvalue;
+    d := numgens image algebra.evecs( set {ev} );
+    for i in reverse (0..d-1) do (
+        v := algebra.evecs(set {ev})_{i} - ev*standardAxialVector(0,n + 1);
+        k := last positions(entries v, x -> x#0 != 0);
+        if k === null or not isUnit v_(k, 0) then continue;
+        changeRingOfAlgebra(algebra, extendedRing algebra );
+        
+        )
+
+
+
+
+
     n := #algebra.evals;
     v = v - x0*sub(standardAxialVector(0,n + 1), ring(x0));
     quotientNullspace (algebra, v);

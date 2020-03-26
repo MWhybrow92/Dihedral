@@ -138,15 +138,11 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
         );
     )
 
---TODO A big one
--- Work out how to reduce the number of indeterminates of the poly ring when we
--- quotient null polys
-
--- If we quotient by a univariate poly of degree 1, we can lose one of the indeterminates
+-- If we quotient by a poly of degree 1, we can lose one of the indeterminates
 -- of the coord ring
 reduceCoordRing = (algebra, I) -> (
-        r := flattenRing( algebra.coordring/I )#0;
-        ind := select(gens r, x -> not isConstant (x));
+        r := (flattenRing( algebra.coordring/I ))#0;
+        ind := unique select(gens r, x -> not isConstant (x));
         -- If there no indeterminates have been determined then do nothing
         if #ind == numgens algebra.coordring then return;
         -- Otherwise change to ring with reduced number of indeterminates
@@ -451,6 +447,7 @@ mainLoop = algebra -> (
         if member(howManyUnknowns algebra, {0,n}) then break;
         );
     fusion algebra;
+    print numgens image algebra.evecs#(set {1});
     findNullVectors algebra;
     )
 
