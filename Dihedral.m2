@@ -506,6 +506,10 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         return hashTable{algebras => {algebra}, lambdas => {}};
         );
 
+    -- Change ordering in order to get good gb
+    changeRingOfAlgebra (algebra, newRing (algebra.coordring , MonomialOrder => Lex) );
+    algebra.polynomials = flatten entries groebnerBasis ideal algebra.polynomials;
+
     -- Find the roots of the first null univariate polynomial
     algebra.polynomials = reverse algebra.polynomials;
     factors := apply(toList factor algebra.polynomials#0, x -> x#0);
