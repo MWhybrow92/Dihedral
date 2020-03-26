@@ -46,3 +46,17 @@ test = apply(algs.algebras, x -> #x.span);
 if set test =!= set {2, 8, 8, 6, 5, 4, 3, 1} then error "Monster";
 
 apply(algs.algebras, x -> testFusion x);
+
+-- Test a polynomial ring case
+
+r = QQ[a, b, m, n, p];
+I = ideal {m*(a-1)-1,n*(b-1)-1,p*(a-b)-1}
+r = r/I;
+
+evals = {1, a, b};
+tbl = ThreeEvals (a,b);
+
+-- TODO Working to some extent - can we reduce the first two algebras further?
+-- Check this against the results in graded.pdf
+algs = dihedralAlgebras (evals, tbl, field => r);
+testFusion (algs.algebras)#2

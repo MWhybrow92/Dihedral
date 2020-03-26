@@ -34,7 +34,7 @@ dihedralAlgebraSetup = dihedralOpts >> opts -> (evals, tbl) -> (
     if algebra.opts.primitive then (
         -- Scale the eigenvector so that x0 = (a0, a1)
         for x in toList(set(algebra.evals) - {ev}) do (
-            algebra.evecs#(set {ev}) = (1/(ev-x))*algebra.evecs#(set {ev});
+            algebra.evecs#(set {ev}) = sub(1/(ev-x), opts.field)*algebra.evecs#(set {ev});
         );
         quotientOneEigenvector ( algebra, algebra.evecs#(set {ev}) );
     );
