@@ -486,6 +486,20 @@ universalDihedralAlgebra = dihedralOpts >> opts -> (evals, tbl) -> (
     return algebra;
     )
 
+findFactors = polys -> (
+    factors := set apply(toList factor polys#0, x -> x#0);
+    n := #polys;
+    if n == 1 then return factors;
+    prod := set {};
+    for p in factors do (
+        subpolys := unique apply( polys, x -> x%p );
+        subpolys = select( subpolys, x -> x != 0 );
+        if any (subpolys, isConstant) then error "Non zero poly";
+        prod = prod + (set {p})**findFactors( subpolys )
+        );
+    return prod;
+    )
+
 dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     -- Construct the whole universal algebra
     algebra := universalDihedralAlgebra(evals, tbl, opts);
