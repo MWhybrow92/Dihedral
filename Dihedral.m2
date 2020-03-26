@@ -70,6 +70,7 @@ fusion = {expand => true} >> opts -> algebra -> (
             );
         for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
         remove(algebra, temp);
+        quotientOneEigenvectors algebra;
     )
 
 recordEvec = (v, rule, evecs, algebra) -> (
@@ -147,12 +148,12 @@ extendedRing = algebra -> (
 
 -- Special procedure to quotient a 1-eigenvector in the primitive case
 quotientOneEigenvectors = algebra -> (
-    n := #algebra.span;
     ev := algebra.opts.eigenvalue;
     d := numgens image algebra.evecs#( set {ev} );
     for i in reverse (0..d-1) do (
+        n := #algebra.span;
         v := algebra.evecs#(set {ev})_{i} - ev*standardAxialVector(0,n);
-        k := last positions(entries v, x -> x#0 != 0);
+        k := position(entries v, x -> x#0 != 0, Reverse => true);
         if k === null or not isUnit v_(k, 0) then continue;
         changeRingOfAlgebra(algebra, extendedRing algebra );
         x := last gens algebra.coordring;
@@ -303,6 +304,7 @@ quotientNullVec = (algebra, vec) -> (
         if i < #algebra.span then (
             x := algebra.span#i;
             if member(k,x) then (
+                n = #algebra.span;
                 if x#0 == k then u := prod
                 else u = standardAxialVector(x#0,n);
                 if x#1 == k then v := prod
