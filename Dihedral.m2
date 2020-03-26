@@ -70,7 +70,6 @@ fusion = {expand => true} >> opts -> algebra -> (
             );
         for ev in keys algebra.temp do algebra.evecs#ev = algebra.temp#ev;
         remove(algebra, temp);
-        quotientOneEigenvectors algebra;
     )
 
 recordEvec = (v, rule, evecs, algebra) -> (
@@ -222,6 +221,8 @@ findNullVectors = algebra -> (
             recordEvec(za, (ev#0)*(ev#1), algebra.evecs, algebra );
             );
         if howManyUnknowns algebra == 0 then return;
+        -- quotient any one-eigenvectors
+        if algebra.opts.primitive then quotientOneEigenvectors algebra;
         -- find new evecs
         findNewEigenvectors(algebra, expand => false);
         if member(howManyUnknowns algebra, {0,n}) then return;
