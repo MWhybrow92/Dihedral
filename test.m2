@@ -45,6 +45,17 @@ if set test =!= set {3, 5, 6, 8, 5, 4, 1, 2, 3} then error "Monster";
 
 apply(algs.algebras, x -> testFusion x);
 
+-- Test Monster (5,2) (used to crash)
+
+evals = {1, 0, 5, 2};
+tbl = MonsterTable( 5, 2 );
+algs = dihedralAlgebras (evals, tbl);
+
+test = apply(algs.algebras, x -> #x.span);
+if set test =!= set {2, 3, 3, 4} then error "Monster (5,2)";
+
+apply(algs.algebras, x -> testFusion x);
+
 -- Test a polynomial ring case
 
 r = QQ[a, b, m, n, p];
