@@ -138,6 +138,29 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
         );
     )
 
+-- Add indeterminates to ring in order to quotient a 1-eigenvector
+extendedRing = algebra -> (
+    n := numgens algebra.coordring - numgens algebra.opts.field;
+    if algebra.opts.form then return algebra.opts.field[ apply (0..n, i -> "x"|i)]
+    else return algebra.opts.field[ apply (0..n, i -> "y"|i) | apply (0..n, i -> "x"|i) ];
+    )
+
+-- Special procedure to quotient a 1-eigenvector in the primitive case
+quotientOneEigenvectors = algebra -> (
+    n := #algebra.span;
+    ev := algebra.opts.eigenvalue;
+    d := numgens image algebra.evecs#( set {ev} );
+    for i in reverse (0..d-1) do (
+        v := algebra.evecs#(set {ev})_{i} - ev*standardAxialVector(0,n);
+        k := last positions(entries v, x -> x#0 != 0);
+        if k === null or not isUnit v_(k, 0) then continue;
+        changeRingOfAlgebra(algebra, extendedRing algebra );
+        x := last gens algebra.coordring;
+        v = algebra.evecs#(set {ev})_{i}-x*sub(standardAxialVector(0,n), algebra.coordring);
+        quotientNullspace (algebra, v);
+        );
+    )
+
 -- If we quotient by a poly of degree 1, we can lose one of the indeterminates
 -- of the coord ring
 reduceCoordRing = (algebra, I) -> (
@@ -447,7 +470,6 @@ mainLoop = algebra -> (
         if member(howManyUnknowns algebra, {0,n}) then break;
         );
     fusion algebra;
-    print numgens image algebra.evecs#(set {1});
     findNullVectors algebra;
     )
 

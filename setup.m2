@@ -36,7 +36,7 @@ dihedralAlgebraSetup = dihedralOpts >> opts -> (evals, tbl) -> (
         for x in toList(set(algebra.evals) - {ev}) do (
             algebra.evecs#(set {ev}) = sub(1/(ev-x), opts.field)*algebra.evecs#(set {ev});
         );
-        quotientOneEigenvector ( algebra, algebra.evecs#(set {ev}) );
+        quotientOneEigenvectors algebra;
     );
 
     n = #algebra.span;
@@ -69,35 +69,6 @@ findFirstEigenvectors = algebra -> (
             );
         algebra.evecs#(set {ev0}) = prod;
         );
-    )
-
--- Add indeterminates to ring in order to quotient a 1-eigenvector
-extendedRing = algebra -> (
-    n := numgens algebra.coordring - numgens algebra.opts.field;
-    if algebra.opts.form then return algebra.opts.field[ apply (0..n, i -> "x"|i)]
-    else return algebra.opts.field[ apply (0..n, i -> "y"|i) | apply (0..n, i -> "x"|i) ];
-    )
-
--- Special procedure to quotient a 1-eigenvector in the primitive case
-quotientOneEigenvectors = algebra -> (
-    n := #algebra.span;
-    ev := algebra.opts.eigenvalue;
-    d := numgens image algebra.evecs( set {ev} );
-    for i in reverse (0..d-1) do (
-        v := algebra.evecs(set {ev})_{i} - ev*standardAxialVector(0,n + 1);
-        k := last positions(entries v, x -> x#0 != 0);
-        if k === null or not isUnit v_(k, 0) then continue;
-        changeRingOfAlgebra(algebra, extendedRing algebra );
-        
-        )
-
-
-
-
-
-    n := #algebra.evals;
-    v = v - x0*sub(standardAxialVector(0,n + 1), ring(x0));
-    quotientNullspace (algebra, v);
     )
 
 -- Finds useful pairs as defined in expansion algorithm paper
