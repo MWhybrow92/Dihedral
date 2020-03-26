@@ -274,6 +274,7 @@ polyNullVec = (algebra, vec) -> (
     -- This needs to be a lemma that \phi_a0 (a_1) = \phi_a0 (a0a1) = x0
     -- As projection of a0a1 - a1 is zero
     poly := vec_(0,0);
+    x0 := (gens algebra.coordring)#0;
     for i in 1..n-1 do poly = poly + vec_(i,0)*x0;
     -- Then quotient this polynomial
     if not algebra.opts.form then polys := {poly, flipPoly(poly, algebra)}
