@@ -75,7 +75,7 @@ findFirstEigenvectors = algebra -> (
 extendedRing = algebra -> (
     n := numgens algebra.coordring - numgens algebra.opts.field;
     if algebra.opts.form then return algebra.opts.field[ apply (0..n, i -> "x"|i)]
-    else return algebra.opts.field[ apply (0..n, i -> "x"|i) | apply (0..n, i -> "y"|i) ];
+    else return algebra.opts.field[ apply (0..n, i -> "y"|i) | apply (0..n, i -> "x"|i) ];
     )
 
 -- Special procedure to quotient a 1-eigenvector in the primitive case
