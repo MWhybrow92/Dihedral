@@ -525,13 +525,12 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     changeRingOfAlgebra (algebra, newRing (algebra.coordring , MonomialOrder => Lex) );
     algebra.polynomials = flatten entries groebnerBasis ideal algebra.polynomials;
 
-    -- Find the roots of the first null univariate polynomial
-    algebra.polynomials = reverse algebra.polynomials;
-    factors := apply(toList factor algebra.polynomials#0, x -> x#0);
+    -- Factor polynomials
+    polys := findFactors (algebra.polynomials);
 
     -- Run over each of these roots
     algs := {};
-    for p in unique(factors) do (
+    for p in toList polys do (
         print ("Using factor", p);
         -- Make the new algebra
         newalgebra := new MutableHashTable from {};
@@ -540,7 +539,7 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         newalgebra.products = new MutableList from {};
         for i to #algebra.span - 1 do newalgebra.products#i = copy algebra.products#i;
         -- Use the factor p
-        newalgebra.polynomials = append(apply(algebra.polynomials, x -> x%p), p);
+        newalgebra.polynomials = toList p;
         quotientNullPolynomials newalgebra;
         findNullVectors newalgebra;
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
