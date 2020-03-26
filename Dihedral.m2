@@ -175,8 +175,6 @@ reduceCoordRing = (algebra, I) -> (
 
 quotientNullPolynomials = algebra -> (
     if #algebra.polynomials == 0 then return;
-    -- Removed repeated factors in polynomials
-    algebra.polynomials  = apply( algebra.polynomials, p -> value apply(factor p, x -> x#0 ));
     -- Quotient polys from products, evecs and nullspace
     I := ideal algebra.polynomials;
     for i to #algebra.products - 1 do (
@@ -496,7 +494,8 @@ findFactors = polys -> (
         subpolys := unique apply( polys, x -> x%p );
         subpolys = select( subpolys, x -> x != 0 );
         if any (subpolys, isConstant) then error "Non zero poly";
-        prod = prod + (set {p})**findFactors( subpolys )
+        if #subpolys > 0 then prod = prod + (set {p})**findFactors( subpolys )
+        else prod = prod + set {toSequence {p}};
         );
     return prod;
     )
