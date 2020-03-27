@@ -165,7 +165,8 @@ quotientOneEigenvectors = algebra -> (
 -- of the coord ring
 reduceCoordRing = (algebra, I) -> (
         r := (flattenRing( algebra.coordring/I ))#0;
-        ind := unique select(gens r, x -> not isConstant (x));
+        ind := unique apply (gens r, x -> sub(x, algebra.coordring));
+        ind = select(ind, x -> not liftable(x, algebra.opts.field));
         -- If there no indeterminates have been determined then do nothing
         if #ind == numgens algebra.coordring then return;
         -- Otherwise change to ring with reduced number of indeterminates
@@ -195,7 +196,7 @@ quotientNullPolynomials = algebra -> (
     if algebra#?nullspace then algebra.nullspace = algebra.nullspace % I;
     -- TODO Implement and test this
     -- Possibly reduce the number of determinants in coord ring
-    -- reduceCoordRing( algebra, I );
+    reduceCoordRing( algebra, I );
     )
 
 findNullPolys = algebra -> (
