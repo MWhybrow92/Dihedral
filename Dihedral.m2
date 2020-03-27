@@ -310,7 +310,7 @@ quotientNullVec = (algebra, vec) -> (
                 if x#1 == k then v := prod
                 else v = standardAxialVector(x#1,n);
                 newProd := axialProduct(u, v, algebra.products);
-                if newProd === false or newProd_(i, 0) == 1 then return false;
+                if newProd === false or (newProd != 0 and newProd_(i, 0) == 1) then return false;
                 newVec := sub(standardAxialVector(i,n), r) - newProd;
                 if quotientNullVec(algebra, newVec) === false then return false;
                 );
