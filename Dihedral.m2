@@ -551,16 +551,24 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     return hashTable{algebras => algs, lambdas => factors};
     )
 
-tauMaps = (algebra, plusEvals, minusEvals) -> (
+tauMaps = (algebra, evals, chars) -> (
     n := #algebra.span;
     mat0 := zeroAxialVector n;
-    espace = algebra.evecs#(set plusEvals) | algebra.evecs#(set minusEvals);
-    k := numgens image algebra.evecs#(set plusEvals);
+    espace := zeroAxialVector n;
+    for s in evals do (
+        espace = espace | algebra.evecs#(set s);
+        );
+    espace = espace_{1..n};
+    dims := apply(evals, s -> numgens image algebra.evecs#(set s));
+    dims = toList apply(0..#dims-1, i -> sum dims_{0..i});
     for i to n - 1 do (
         a := sub(standardAxialVector(i, n), algebra.coordring);
         v := a//espace;
-        v = v^{0..k-1} || -v^{k..n-1};
-        mat0 = mat0 | (espace*v);
+        u = (chars#0)*v^{0..dims#0-1};
+        for j from 1 to #chars - 1 do (
+            u = u || (chars#j)*v^{dims#(j-1)..dims#j-1};
+            );
+        mat0 = mat0 | (espace*u);
         );
     mat0 = mat0_{1..n};
     mat1 := new MutableMatrix from mat0;
