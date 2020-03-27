@@ -140,7 +140,7 @@ findNewEigenvectors = {expand => true} >> opts -> algebra -> (
 
 -- Add indeterminates to ring in order to quotient a 1-eigenvector
 extendedRing = algebra -> (
-    n := numgens algebra.coordring - numgens algebra.opts.field;
+    n := numgens algebra.coordring;
     if algebra.opts.form then return algebra.opts.field[ apply (0..n, i -> "x"|i)]
     else return algebra.opts.field[ apply (0..n, i -> "y"|i) | apply (0..n, i -> "x"|i) ];
     )
