@@ -553,12 +553,9 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
 
 tauMaps = (algebra, plusEvals, minusEvals) -> (
     n := #algebra.span;
-    espace := zeroAxialVector n;
     mat0 := zeroAxialVector n;
-    for ev in plusEvals do espace = espace | algebra.evecs#(set {ev});
-    k := numgens image espace - 1;
-    for ev in minusEvals do espace = espace | algebra.evecs#(set {ev});
-    espace = espace_{1..n};
+    espace = algebra.evecs#(set plusEvals) | algebra.evecs#(set minusEvals);
+    k := numgens image algebra.evecs#(set plusEvals);
     for i to n - 1 do (
         a := sub(standardAxialVector(i, n), algebra.coordring);
         v := a//espace;
