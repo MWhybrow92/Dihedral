@@ -196,7 +196,7 @@ quotientNullPolynomials = algebra -> (
     if algebra#?nullspace then algebra.nullspace = algebra.nullspace % I;
     -- TODO Implement and test this
     -- Possibly reduce the number of determinants in coord ring
-    reduceCoordRing( algebra, I );
+    -- reduceCoordRing( algebra, I );
     )
 
 findNullPolys = algebra -> (
