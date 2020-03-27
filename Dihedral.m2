@@ -486,19 +486,18 @@ universalDihedralAlgebra = dihedralOpts >> opts -> (evals, tbl) -> (
     )
 
 findFactors = polys -> (
-    factors := apply(toList factor polys#0, x -> x#0);
-    factors = set select (factors, x -> not isConstant x);
-    n := #polys;
-    if n == 1 then return factors;
-    prod := set {};
+    factors := unique apply(toList factor polys#0, x -> x#0);
+    factors = select (factors, x -> not isConstant x);
+    prod := {};
     for p in toList factors do (
         subpolys := unique apply( polys, x -> x%p );
         subpolys = select( subpolys, x -> x != 0 );
-        if any (subpolys, isConstant) then error "Non zero poly";
-        if #subpolys > 0 then prod = prod + (set {p})**findFactors( subpolys )
-        else prod = prod + set {toSequence {p}};
+        if #subpolys > 0 then (
+            prod = prod | toList((set {p})**(set findFactors( subpolys )));
+            )
+        else prod = append (prod, {p});
         );
-    return prod;
+    return apply(prod, x -> flatten toList x);
     )
 
 dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
