@@ -10,7 +10,6 @@ dihedralAlgebraSetup = dihedralOpts >> opts -> (evals, tbl) -> (
     algebra := new MutableHashTable;
     algebra.evals = evals;
     algebra.tbl = tbl;
-    algebra.usefulpairs = usefulPairs(evals, tbl);
     algebra.opts = opts;
     if opts.primitive then algebra.coordring = opts.field[]
     else algebra.coordring = opts.field;
@@ -70,23 +69,4 @@ findFirstEigenvectors = algebra -> (
             );
         algebra.evecs#(set {ev0}) = prod;
         );
-    )
-
--- Finds useful pairs as defined in expansion algorithm paper
-usefulPairs = (evals, tbl) -> (
-    pset := properSubsets evals;
-    evalpairs := toList((set pset)**(set pset))/toList;
-    useful := {};
-    for p in evalpairs do (
-        rule := fusionRule(p#0, p#1, tbl);
-        if #rule < #evals then (
-            sets0 := select(pset, x -> isSubset(p#0, x) and x != p#0);
-            sets1 := select(pset, x -> isSubset(p#1, x) and x != p#1);
-            rules = apply(sets0, x -> fusionRule(x, p#1, tbl));
-            rules = rules | apply(sets1, x -> fusionRule(x, p#0, tbl));
-            if not member(rule, rules) then useful = append(useful, set(p/set));
-            );
-        );
-    useful = (unique useful)/toList;
-    return apply(useful, x -> if #x == 1 then {x#0, x#0} else x);
     )
