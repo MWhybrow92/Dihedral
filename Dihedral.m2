@@ -46,11 +46,30 @@ fusionRule = (set0, set1, tbl) -> (
     set rule
     )
 
+-- Finds useful pairs as defined in expansion algorithm paper
+usefulPairs = (evals, tbl) -> (
+    pset := properSubsets evals;
+    evalpairs := toList((set pset)**(set pset))/toList;
+    useful := {};
+    for p in evalpairs do (
+        rule := fusionRule(p#0, p#1, tbl);
+        if #rule < #evals then (
+            sets0 := select(pset, x -> isSubset(p#0, x) and x != p#0);
+            sets1 := select(pset, x -> isSubset(p#1, x) and x != p#1);
+            rules = apply(sets0, x -> fusionRule(x, p#1, tbl));
+            rules = rules | apply(sets1, x -> fusionRule(x, p#0, tbl));
+            if not member(rule, rules) then useful = append(useful, set(p/set));
+            );
+        );
+    useful = (unique useful)/toList;
+    return apply(useful, x -> if #x == 1 then {x#0, x#0} else x);
+    )
+
 fusion = {expand => true} >> opts -> algebra -> (
     if opts.expand == true then print "Performing fusion with expansion"
     else print "Performing fusion without expansion";
     algebra.temp = copy algebra.evecs;
-    for p in algebra.usefulpairs do (
+    for p in usefulPairs(algebra.evals, algebra.tbl) do (
         rule := fusionRule(p#0, p#1, algebra.tbl);
             for i to numgens source algebra.evecs#(p#0) - 1 do (
                 if p#0 === p#1 then start := i else start = 0;
