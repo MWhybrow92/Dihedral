@@ -536,10 +536,6 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     -- Construct the whole universal algebra
     algebra := universalDihedralAlgebra(evals, tbl, opts);
 
-    -- Find the indeterminates of the algebra, if none then return universal algebra
-    ind := set(gens algebra.coordring);
-    if #ind == 0 then return universalDihedralAlgebra(evals, tbl, opts);
-
     -- Might need to go looking for more polynomials
     while true do (
         n := #algebra.polynomials;
@@ -557,11 +553,11 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     algebra.polynomials = flatten entries groebnerBasis ideal algebra.polynomials;
 
     -- Factor polynomials
-    polys := findFactors (algebra.polynomials);
+    factors := findFactors (algebra.polynomials);
 
     -- Run over each of these roots
     algs := {};
-    for p in toList polys do (
+    for p in toList factors do (
         print ("Using factor", p);
         -- Make the new algebra
         newalgebra := new MutableHashTable from {};
@@ -576,10 +572,11 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
         while howManyUnknowns newalgebra > 0 do mainLoop newalgebra;
         fusion newalgebra;
         findNullVectors newalgebra;
-        algs = append(algs, newalgebra);
+        if #newalgebra.span > 0 then algs = append(algs, newalgebra)
+        else factors = delete(p, factors);
         print "Found new algebra";
         );
-    return hashTable{algebras => algs, lambdas => factors};
+    return hashTable{algebras => algs, polys => factors};
     )
 
 tauMaps = (algebra, evals, chars) -> (
