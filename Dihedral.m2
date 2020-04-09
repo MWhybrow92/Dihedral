@@ -330,13 +330,11 @@ quotientNullVec = (algebra, vec) -> (
         if k < 3 then vec = polyNullVec (algebra, vec);
         );
     if not isUnit vec_(k,0) then return false;
-    if algebra.opts.primitive then entry := sub(vec_(k,0), coefficientRing algebra.coordring)
-    else entry = vec_(k,0);
-    vec = vec*entry^(-1);
+    vec = vec*vec_(k,0)^(-1);
     n := #algebra.span;
     prod := standardAxialVector(k,n) - vec;
     for i in k+1 .. n-1 do (
-        if i < #algebra.span then (
+        if 1 < i and i < #algebra.span then (
             x := algebra.span#i;
             if member(k,x) then (
                 n = #algebra.span;
@@ -352,7 +350,6 @@ quotientNullVec = (algebra, vec) -> (
             );
         );
     n = #algebra.span;
-    if k > n - 1 then return;
     d = n - numgens target vec;
     if d < 0 then vec = vec^(toList (0..n-1))
     else if d > 0 then vec = vec || matrix(toList(d:{0}));
