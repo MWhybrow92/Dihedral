@@ -7,7 +7,7 @@ tbl = JordanTable (1/4);
 algs = dihedralAlgebras (evals, tbl, form => false);
 
 test = apply(algs.algebras, x -> #x.span);
-if set test =!= set {2, 3, 1} then error "Jordan 1/4";
+if sort test != {1, 2, 3} then error "Jordan 1/4";
 
 test = apply(algs.algebras, x -> testFusion x);
 if test != {true, true, true} then error "Jordan 1/4";
@@ -41,7 +41,7 @@ tbl = MonsterTable( 1/4, 1/32 );
 algs = dihedralAlgebras (evals, tbl);
 
 test = apply(algs.algebras, x -> #x.span);
-if set test =!= set {3, 5, 6, 8, 5, 4, 1, 2, 3} then error "Monster";
+if sort test != {1, 2, 3, 3, 4, 5, 5, 6, 8} then error "Monster";
 
 apply(algs.algebras, x -> testFusion x);
 
@@ -52,7 +52,7 @@ tbl = MonsterTable( 5, 2 );
 algs = dihedralAlgebras (evals, tbl);
 
 test = apply(algs.algebras, x -> #x.span);
-if set test =!= set {2, 3, 3, 4} then error "Monster (5,2)";
+if sort test != {2, 3, 3, 4} then error "Monster (5,2)";
 
 apply(algs.algebras, x -> testFusion x);
 
