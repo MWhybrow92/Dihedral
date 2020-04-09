@@ -544,10 +544,10 @@ dihedralAlgebras = dihedralOpts >> opts -> (evals, tbl) -> (
     if #ind == 0 then return universalDihedralAlgebra(evals, tbl, opts);
 
     -- Might need to go looking for more polynomials
-    findNullPolys algebra;
-    if #algebra.polynomials == 0 then (
-        fusion algebra;
+    while true do (
+        n := #algebra.polynomials;
         findNullPolys algebra;
+        if n == #algebra.polynomials then break;
         );
     -- If still none then return
     if #algebra.polynomials == 0 then (
