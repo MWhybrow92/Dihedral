@@ -13,9 +13,12 @@ if true then (
         changeRingOfAlgebra = profile  changeRingOfAlgebra,
         reduceSpanningVec = profile  reduceSpanningVec,
         quotientNullspace = profile  quotientNullspace,
+        quotientOneEigenvectors = profile quotientOneEigenvectors,
         polyNullVec = profile polyNullVec;
         quotientNullVec = profile  quotientNullVec,
         reduce = profile  reduce,
+        fusionPairs = profile fusionPairs;
+        intersectionPairs = profile intersectionPairs;
         findUnknowns = profile  findUnknowns,
         axialProduct = profile  axialProduct,
         findFlip = profile  findFlip,
@@ -24,4 +27,5 @@ if true then (
         flipVector = profile  flipVector,
         howManyUnknowns = profile  howManyUnknowns,
         mainLoop = profile  mainLoop,
+        --findLambaValue = profile findLambaValue
         );
