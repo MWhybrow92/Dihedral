@@ -226,16 +226,30 @@ findNullPolys = algebra -> (
     quotientNullVec(algebra, za);
     )
 
+intersectionPairs = evals -> (
+    n := #evals;
+    pairs := {};
+    for i from 1 to n - 1 do (
+        for x in subsets(evals, i) do (
+            for j from 0 to i - 1 do (
+                for y in subsets(evals, n - (i - j) ) do (
+                    if #(set x * set y) == j then (
+                        pairs = pairs | {apply(sort {x,y}, set)};
+                        );
+                    );
+                );
+            );
+        );
+    return unique pairs;
+    )
+
 findNullVectors = algebra -> (
     pset := keys algebra.evecs;
-    evalpairs := toList((set pset)**(set pset))/toList;
-    evalpairs = select(evalpairs, x -> not (isSubset(x#0,x#1) or isSubset(x#1, x#0)));
-    evalpairs = unique apply(evalpairs, x -> (sort (x/toList))/set);
     while true do (
         n := howManyUnknowns algebra;
         -- intersect distinct eigenspaces
         print "Finding null vectors";
-        for ev in evalpairs do (
+        for ev in intersectionPairs evals do (
             za := colReduce gens intersect(image algebra.evecs#(ev#0), image algebra.evecs#(ev#1));
             recordEvec(za, (ev#0)*(ev#1), algebra.evecs, algebra );
             );
