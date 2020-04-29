@@ -190,6 +190,7 @@ reduceCoordRing = (algebra, I) -> (
         -- If there no indeterminates have been determined then do nothing
         if #ind == numgens algebra.coordring then return;
         -- Otherwise change to ring with reduced number of indeterminates
+        algebra.polynomials = {}; -- Have to get rid of polys - is there a better way?
         r = coefficientRing(algebra.coordring)[ind];
         changeRingOfAlgebra(algebra, r);
     )
@@ -214,9 +215,7 @@ quotientNullPolynomials = algebra -> (
             );
         );
     if algebra#?nullspace then algebra.nullspace = algebra.nullspace % I;
-    -- TODO Implement and test this
-    -- Possibly reduce the number of determinants in coord ring
-    -- reduceCoordRing( algebra, I );
+    reduceCoordRing( algebra, I );
     )
 
 findNullPolys = algebra -> (
