@@ -300,7 +300,7 @@ quotientNullspace = (algebra, mat)  -> (
         );
     d = numgens image algebra.nullspace;
     -- Quotient one vec at a time
-    for j in reverse toList(0..d-1) do quotientNullVec(algebra, algebra.nullspace_{j});
+    for j to d - 1 do quotientNullVec(algebra, algebra.nullspace_{j});
     )
 
 polyNullVec = (algebra, vec) -> (
@@ -316,38 +316,43 @@ polyNullVec = (algebra, vec) -> (
     else polys = {poly};
     polys = flatten entries groebnerBasis ideal (algebra.polynomials | polys);
     if polys != algebra.polynomials then (
+        if any (polys, x -> x == 1) then (
+            algebra.span = {};
+            algebra.products = new MutableList from {};
+            );
+        vec = vec % (ideal polys);
         algebra.polynomials = polys;
         quotientNullPolynomials algebra;
         );
-    return vec % (ideal algebra.polynomials);
+    return sub(vec, algebra.coordring);
     );
 
 quotientNullVec = (algebra, vec) -> (
     if vec == 0 then return;
     r := algebra.coordring;
     k := last positions(entries vec, x -> x#0 != 0);
-    if algebra.opts.primitive and #(set(support vec_(k,0))*set(gens r)) > 0 then ( -- all poly mat
+    if isPolynomialRing r and #(set(support vec_(k,0))*set(gens r)) > 0 then ( -- all poly mat
         if k < 3 then vec = polyNullVec (algebra, vec);
         );
     if not isUnit vec_(k,0) then return false;
     vec = vec*vec_(k,0)^(-1);
     n := #algebra.span;
     prod := standardAxialVector(k,n) - vec;
-    for i in k+1 .. n-1 do (
-        if 1 < i and i < #algebra.span then (
-            x := algebra.span#i;
-            if member(k,x) then (
-                n = #algebra.span;
-                if x#0 == k then u := prod
-                else u = standardAxialVector(x#0,n);
-                if x#1 == k then v := prod
-                else v = standardAxialVector(x#1,n);
-                newProd := axialProduct(u, v, algebra.products);
-                if newProd === false or (newProd != 0 and newProd_(i, 0) == 1) then return false;
-                newVec := sub(standardAxialVector(i,n), r) - newProd;
-                if quotientNullVec(algebra, newVec) === false then return false;
-                );
-            );
+    i := k + 1;
+    while 1 < i and i < #algebra.span do (
+        x := algebra.span#i;
+        if member(k,x) then (
+            n = #algebra.span;
+            if x#0 == k then u := prod
+            else u = standardAxialVector(x#0,n);
+            if x#1 == k then v := prod
+            else v = standardAxialVector(x#1,n);
+            newProd := axialProduct(u, v, algebra.products);
+            if newProd === false or (newProd != 0 and newProd_(i, 0) == 1) then return false;
+            newVec := sub(standardAxialVector(i,n), r) - newProd;
+            if quotientNullVec(algebra, newVec) === false then return false;
+            )
+        else i = i + 1;
         );
     n = #algebra.span;
     d = n - numgens target vec;
