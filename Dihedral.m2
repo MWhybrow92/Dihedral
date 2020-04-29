@@ -525,6 +525,7 @@ universalDihedralAlgebra = dihedralOpts >> opts -> (evals, tbl) -> (
         mainLoop algebra;
         print( "Time taken:", cpuTime() - t1 );
         );
+    findNullVectors algebra;
     return algebra;
     )
 
