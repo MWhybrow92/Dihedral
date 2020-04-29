@@ -465,9 +465,15 @@ imageFlip = (i, f, algebra) -> (
 -- Applies polynomial flip to x which can be a polynomial or a vector
 flipPoly = (x, algebra) -> (
     r := algebra.coordring;
-    k := numgens r - numgens algebra.opts.field;
-    k = (k/2)^ZZ;
-    for i to (k - 1) do x = sub(x, {r_i => r_(i + k), r_(i + k) => r_i} );
+    -- TODO Which one?
+    k := numgens r;
+    --k := numgens r - numgens algebra.opts.field;
+    for i to k - 1 do (
+        if (toString (gens r)#i)#0 == "x" then (
+            pos := position (gens r, z -> toString z == ("y" | (toString (gens r)#i)#1) );
+            if pos =!= null then x = sub(x, {r_i => r_pos, r_pos => r_i});
+            );
+        );
     return x;
     )
 
